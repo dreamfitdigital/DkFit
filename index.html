@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+<title>Fit — fitness map</title>
+<meta name="description" content="Interactive map of gyms and fitness centres in the Faroe Islands — prices, opening hours, contact and amenities." />
+<meta name="theme-color" content="#ffd23f" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23ff7a59'/%3E%3Ctext x='50' y='52' font-size='58' text-anchor='middle' dominant-baseline='central'%3E%F0%9F%8F%8B%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<meta property="og:title" content="Fit — fitness map" />
+<meta property="og:description" content="Find gyms and fitness centres across the Faroe Islands — prices, opening hours, classes and contact, on one map." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#fdf6e9; --panel:#ffffff; --panel-2:#fff8ed; --ink:#23303b; --muted:#6b7b88;
+    --accent:#ff7a59; --accent-2:#19b6c9; --yellow:#ffd23f; --green:#2dc26b; --pink:#ff6f9c;
+    --r:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:"Fredoka",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);overflow:hidden}
+  a{color:#0f8d9c;text-decoration:none;font-weight:500}
+  a:hover{text-decoration:underline}
+
+  #map{position:fixed;inset:0;background:#aadaff;z-index:0}
+  .leaflet-control-attribution{background:rgba(255,255,255,.8)!important;border-radius:8px 0 0 0}
+  .pin{border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid var(--ink);
+    box-shadow:2px 3px 0 rgba(35,48,59,.35);display:grid;place-items:center}
+  .pin span{transform:rotate(45deg);font-size:15px;line-height:1}
+  /* ---------- Pin hover tooltip ---------- */
+  .leaflet-tooltip.pin-tip{background:#fff;border:2.5px solid var(--ink);border-radius:13px;box-shadow:3px 3px 0 var(--ink);
+    padding:8px 11px;font-family:"Fredoka",-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);font-weight:500;font-size:12.5px;max-width:240px;white-space:normal}
+  .leaflet-tooltip.pin-tip::before{display:none}
+  .pin-tip .t-name{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px;margin-bottom:1px}
+  .pin-tip .t-dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--ink);flex:none}
+  .pin-tip .t-row{color:var(--muted);font-size:12px;margin-top:1px}
+  .pin-tip .t-price{color:#13934f;font-weight:700;margin-top:3px}
+  .pin-tip .t-price small{color:var(--muted);font-weight:500}
+
+  /* ---------- Left brand navigator ---------- */
+  .sidebar{position:fixed;left:16px;top:50%;transform:translateY(-50%);width:230px;z-index:1050;max-height:calc(100vh - 110px);
+    background:#fff;border:3px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink);
+    display:flex;flex-direction:column;overflow:hidden;transition:width .22s ease}
+  .sidebar.collapsed{width:60px}
+  .sb-head{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:3px solid var(--ink);background:var(--yellow)}
+  .sb-head .sb-mark{width:27px;height:27px;border-radius:8px;background:var(--accent);border:2.5px solid var(--ink);
+    display:grid;place-items:center;font-size:14px;transform:rotate(-5deg);flex:none}
+  .sb-head h3{margin:0;font-size:18px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden}
+  .sb-head h3 .fo{color:var(--accent)}
+  .sidebar.collapsed .sb-head{padding:11px 0;justify-content:center}
+  .sidebar.collapsed .sb-head h3,.sidebar.collapsed .sb-mark{display:none}
+  .sb-toggle{border:2.5px solid var(--ink);background:#fff;color:var(--ink);width:28px;height:28px;border-radius:8px;
+    cursor:pointer;font-size:15px;line-height:1;font-weight:700;box-shadow:2px 2px 0 var(--ink);flex:none}
+  .sb-toggle:active{transform:translate(2px,2px);box-shadow:none}
+  .sb-browse{flex:none;display:grid;place-items:center;width:30px;height:28px;border:2.5px solid var(--ink);
+    background:var(--accent-2);color:#fff;border-radius:8px;cursor:pointer;font-size:15px;font-weight:700;
+    text-decoration:none;box-shadow:2px 2px 0 var(--ink)}
+  .sb-browse:hover{text-decoration:none;background:#15a0b1}
+  .sb-browse:active{transform:translate(2px,2px);box-shadow:none}
+  .sb-list{overflow-y:auto;overflow-x:hidden;padding:8px;scrollbar-width:none}
+  .sb-list::-webkit-scrollbar{display:none}
+  .sb-all{width:calc(100% - 4px);text-align:left;font-family:inherit;font-weight:600;font-size:13.5px;cursor:pointer;
+    padding:9px 11px;border-radius:10px;border:2.5px solid var(--ink);background:var(--panel-2);color:var(--ink);
+    box-shadow:2px 2px 0 var(--ink);margin:2px 2px 8px;white-space:nowrap;overflow:hidden}
+  .sb-all.active{background:var(--ink);color:#fff}
+  .brand-h{width:calc(100% - 4px);display:flex;align-items:center;gap:8px;font-family:inherit;font-weight:600;font-size:14px;
+    cursor:pointer;padding:9px 10px;border-radius:10px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);
+    box-shadow:2px 2px 0 var(--ink);margin:0 2px 7px}
+  .brand-h:active{transform:translate(2px,2px);box-shadow:none}
+  .brand-h.active{background:var(--accent-2);color:#fff}
+  .bdot{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--ink);flex:none}
+  .brand-h.active .bdot{border-color:#fff}
+  .bname{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bshort{display:none;font-weight:600}
+  .bcount{font-size:11px;background:var(--yellow);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:0 6px;font-weight:700}
+  .brand-h.active .bcount{background:#fff}
+  .sidebar.collapsed .brand-h{justify-content:center;padding:9px 0;gap:0}
+  .sidebar.collapsed .bname,.sidebar.collapsed .bcount{display:none}
+  .sidebar.collapsed .sb-all{text-align:center;padding:9px 0;font-size:15px}
+  .sidebar.collapsed .alltext{display:none}
+
+  /* ---------- Floating detail board ---------- */
+  .board{position:fixed;right:18px;top:18px;transform:translateX(120%);
+    width:min(380px,calc(100vw - 32px));max-height:calc(100vh - 36px);z-index:1100;
+    background:#fff;border:3px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--ink);
+    display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.2,.8,.2,1);overflow:hidden}
+  .board.open{transform:translateX(0)}
+  .board .bh{padding:13px 14px 12px;border-bottom:3px solid var(--ink);background:var(--yellow)}
+  .board .bh-top{display:grid;grid-template-columns:minmax(0,auto) 1fr auto;align-items:center;gap:8px}
+  .board .bh h2{margin:0;font-size:24px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .board .bh .sub{color:var(--ink);font-size:13px;font-weight:500;margin-top:4px}
+  .bclose{justify-self:end;border:3px solid var(--ink);background:#fff;color:var(--ink);
+    width:30px;height:30px;border-radius:9px;cursor:pointer;font-size:16px;line-height:1;font-weight:700;box-shadow:2px 2px 0 var(--ink)}
+  .bclose:active{transform:translate(2px,2px);box-shadow:none}
+  .bcmp{justify-self:center;border:2.5px solid var(--ink);background:var(--accent-2);color:#fff;white-space:nowrap;
+    padding:7px 16px;border-radius:999px;cursor:pointer;font-size:13.5px;line-height:1;font-weight:600;box-shadow:2px 2px 0 var(--ink);font-family:inherit}
+  .bcmp:active{transform:translate(2px,2px);box-shadow:none}
+  .tabs{display:flex;flex-wrap:nowrap;justify-content:safe center;gap:7px;padding:11px 14px 14px;border-bottom:3px solid var(--ink);background:#fff7ec;overflow-x:auto;scrollbar-width:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs.dragging{cursor:grabbing}
+  .tab{flex:0 0 auto;white-space:nowrap;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0 15px;height:36px;
+    display:inline-flex;align-items:center;border-radius:999px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
+  .tab.active{background:var(--accent);color:#fff}
+  .tab:active{transform:translate(2px,2px);box-shadow:none}
+  .bbody{overflow-y:auto;padding:14px 18px 16px;scrollbar-width:none}
+  .bbody::-webkit-scrollbar{display:none}
+  .sec{margin-bottom:16px}
+  .sec h4{margin:0 0 9px;font-size:12px;letter-spacing:.3px;color:#fff;font-weight:600;background:var(--accent);
+    display:inline-block;padding:3px 12px;border-radius:999px;border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+  .ph{width:100%;height:150px;object-fit:cover;border-radius:12px;border:3px solid var(--ink);background:var(--panel-2);margin-bottom:14px;box-shadow:3px 3px 0 var(--ink)}
+  .pricebig{font-size:22px;font-weight:700;color:#13934f;margin:-2px 0 6px}
+  .psub{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:13px 0 4px}
+  .prow-empty{color:#c2cbd2;font-size:13px;font-weight:500;padding:3px 2px}
+  .offer{display:flex;gap:7px;align-items:flex-start;background:#eafff3;border:2.5px solid var(--ink);color:#13632f;
+    font-weight:600;font-size:13px;line-height:1.35;padding:9px 11px;border-radius:12px;margin:0 0 14px;box-shadow:2px 2px 0 var(--ink)}
+  .offer .offer-when{font-weight:700;white-space:nowrap}
+  .offer.expired{background:#f1eee8;color:#8a7f6f;border-color:#bcae98;box-shadow:2px 2px 0 #bcae98}
+  .updated{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:6px 2px;border-bottom:2px dotted #cdd6dd;font-size:13.5px;font-weight:500}
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--muted)} .row .v{text-align:right}
+  .price-v{color:#13934f;font-weight:600}
+  .hours .today{background:#eafff3;border-radius:8px}
+  .hours .today .k{color:#13934f;font-weight:700}
+  .tags{display:flex;flex-wrap:nowrap;gap:6px;padding-bottom:5px;overflow-x:auto;scrollbar-width:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  .tags::-webkit-scrollbar{display:none}
+  .tags.dragging{cursor:grabbing}
+  .tags span{flex:0 0 auto;white-space:nowrap;font-size:12px;color:var(--ink);background:var(--panel-2);border:2.5px solid var(--ink);padding:3px 10px;border-radius:999px;font-weight:500;box-shadow:2px 2px 0 var(--ink)}
+  .ptabs{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px 0 8px;padding-bottom:5px;cursor:grab;user-select:none;-webkit-user-select:none}
+  .ptabs::-webkit-scrollbar{display:none}
+  .ptabs.dragging{cursor:grabbing}
+  .ptab{flex:0 0 auto;white-space:nowrap;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:5px 13px;border-radius:999px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
+  .ptab.active{background:var(--accent-2);color:#fff}
+  .ptab:active{transform:translate(2px,2px);box-shadow:none}
+  .note{color:var(--muted);font-size:12px;font-style:italic;margin-top:7px;font-weight:500}
+  .unverified{font-size:12px;color:var(--ink);background:var(--yellow);border:2.5px solid var(--ink);padding:7px 10px;border-radius:10px;margin-top:7px;font-weight:500;box-shadow:3px 3px 0 var(--ink)}
+  .cmpsimilar{display:block;width:100%;text-align:center;margin-top:6px;background:var(--accent-2);color:#fff;font-family:inherit;font-weight:600;
+    font-size:14.5px;padding:11px;border-radius:12px;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+  .cmpsimilar:hover{background:#15a0b1}
+  .cmpsimilar:active{transform:translate(3px,3px);box-shadow:none}
+
+  /* ---------- Inline compare: full panels side by side ---------- */
+  body.compare-on .board{display:none}
+  .compare-row{position:fixed;right:18px;top:18px;z-index:1150;
+    display:flex;gap:14px;align-items:flex-start;max-width:calc(100vw - 270px);overflow-x:auto;padding:4px;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;scrollbar-width:none}
+  .compare-row::-webkit-scrollbar{display:none}
+  body.compare-on .compare-row{opacity:1;pointer-events:auto}
+  .cpanel{flex:0 0 auto;width:min(340px,86vw);max-height:calc(100vh - 36px);background:#fff;border:3px solid var(--ink);border-radius:20px;
+    box-shadow:6px 6px 0 var(--ink);display:flex;flex-direction:column;overflow:hidden}
+  .cpanel .cph{padding:15px 16px 12px;border-bottom:3px solid var(--ink);background:var(--yellow);position:relative}
+  .cpanel .cph h2{margin:0 0 2px;font-size:19px;font-weight:700;padding-right:34px}
+  .cpanel .cph .sub{font-size:12.5px;font-weight:500;color:var(--ink)}
+  .cpanel .cpx{position:absolute;top:12px;right:12px;border:3px solid var(--ink);background:#fff;color:var(--ink);width:28px;height:28px;
+    border-radius:8px;cursor:pointer;font-weight:700;font-size:15px;line-height:1;box-shadow:2px 2px 0 var(--ink)}
+  .cpanel .cpx:active{transform:translate(2px,2px);box-shadow:none}
+  .cpanel .cpb{overflow-y:auto;padding:13px 16px 16px;scrollbar-width:none}
+  .cpanel .cpb::-webkit-scrollbar{display:none}
+  .cpanel .ctabs{display:flex;flex-wrap:nowrap;gap:7px;padding:10px 14px 13px;border-bottom:3px solid var(--ink);background:#fff7ec;overflow-x:auto;scrollbar-width:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  .cpanel .ctabs::-webkit-scrollbar{display:none}
+  .cpanel .ctabs.dragging{cursor:grabbing}
+  .cpanel.empty{align-items:center;justify-content:center;border-style:dashed;background:#fff8ed;color:var(--muted);
+    text-align:center;font-weight:600;font-size:14px;padding:26px;min-height:220px}
+
+  @media (max-width:680px){
+    /* brand navigator -> horizontal top bar */
+    .sidebar{top:10px;left:10px;right:10px;bottom:auto;width:auto;max-height:none;transform:none;
+      flex-direction:row;align-items:stretch;border-radius:14px}
+    .sb-head{flex:0 0 auto;border-bottom:none;border-right:3px solid var(--ink);padding:9px 11px}
+    .sb-head h3{font-size:16px}
+    .sb-toggle{display:none}
+    .sb-list{flex:1;display:flex;flex-direction:row;align-items:center;gap:6px;
+      overflow-x:auto;overflow-y:hidden;padding:7px 8px}
+    .sb-all,.brand-h{flex:0 0 auto;width:auto;margin:0;white-space:nowrap}
+    .brand-h .bname,.brand-h .bcount{display:none}   /* show only the 4-letter label */
+    .brand-h .bshort{display:inline}
+    /* detail -> bottom sheet */
+    .board{right:50%;left:auto;top:auto;bottom:10px;transform:translateX(50%) translateY(170%);
+      width:calc(100vw - 20px);max-height:66vh}
+    .board.open{transform:translateX(50%) translateY(0)}
+    /* compare -> full-width panels, swipe horizontally (newest shows first) */
+    .compare-row{left:10px;right:10px;top:74px;bottom:10px;max-width:none;
+      flex-direction:row;align-items:flex-start;overflow-x:auto;overflow-y:hidden}
+    .cpanel{width:86vw;max-height:calc(100vh - 92px)}
+    .cpanel.empty{display:none}   /* on mobile the top brand bar is how you add */
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<aside id="sidebar" class="sidebar">
+  <div class="sb-head">
+    <span class="sb-mark">🏋️</span>
+    <h3 id="sb-title"></h3>
+    <a id="browse-link" class="sb-browse" href="compare.html" title="Browse / compare all" style="display:none">≣</a>
+    <button id="sb-toggle" class="sb-toggle" aria-label="Collapse">‹</button>
+  </div>
+  <div id="sb-list" class="sb-list"></div>
+</aside>
+
+<div id="board" class="board">
+  <div class="bh">
+    <div class="bh-top">
+      <h2 id="b-name"></h2>
+      <button class="bcmp" id="b-compare" title="Compare price &amp; hours">Compare ⚖</button>
+      <button class="bclose" id="bclose" aria-label="Close">×</button>
+    </div>
+    <div class="sub" id="b-sub"></div>
+  </div>
+  <div id="b-tabs" class="tabs" style="display:none"></div>
+  <div class="bbody" id="bbody"></div>
+</div>
+
+<div id="compare-row" class="compare-row"></div>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script>
+(function(){
+  const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const todayKey = DAYS[new Date().getDay()];
+  let brandFilter = null;
+  let selectedId = null;
+  let compareMode = false;
+  let compareList = [];   // brand names; index 0 = the kept panel (stays on the right)
+  let compareLoc = {};    // brand -> active location id (for chains with tabs)
+
+  const TYPE_COLOR = {
+    "CrossFit box":"#ff6f9c","Fitness & class studio":"#ffd23f",
+    "Outdoor fitness park":"#2dc26b","Coached fitness course":"#E8511A","Gym & fitness centre":"#ff7a59"
+  };
+  const BRAND_COLOR = (typeof CONFIG!=='undefined' && CONFIG.brandColors) || {};
+  const SHORT_LABEL = (typeof CONFIG!=='undefined' && CONFIG.shortLabels) || {};
+  const brandOf = g => g.name.split(" — ")[0];
+  const colorFor = g => BRAND_COLOR[brandOf(g)] || TYPE_COLOR[g.type] || "#ff7a59";
+  // pill label: short area ("København X" → "Cph X") + street, so duplicate districts are distinguishable
+  const shortArea = t => (t||'').replace(/Copenhagen/i,'Cph').replace(/København/i,'Cph');
+  const streetOf  = a => { const m=String(a||'').match(/^[^\d,]+/); return m?m[0].trim():''; };
+  const pillLabel = g => { const ar=shortArea(g.town), st=streetOf(g.address); return st ? (ar ? ar+' · '+st : st) : ar; };
+  // hover tooltip: address + headline price + day-pass for quick comparison
+  function tipHtml(g){
+    const day = (g.passes||[]).find(p=>/day ?pass|drop-?in/i.test(p.label));
+    return `<div class="t-name"><span class="t-dot" style="background:${colorFor(g)}"></span>${esc(brandOf(g))} · ${esc(shortArea(g.town))}</div>`
+      + (g.address?`<div class="t-row">${esc(g.address)}</div>`:'')
+      + (g.priceMonthly?`<div class="t-price">${esc(g.priceMonthly)}${day?` <small>· day pass ${esc(day.value)}</small>`:''}</div>`:'');
+  }
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ---- Branding from CONFIG ----
+  document.title = CONFIG.title + (CONFIG.tagline ? ' — ' + CONFIG.tagline : ' — fitness map');
+  (function(){ const el=document.getElementById('sb-title'); const t=CONFIG.title||'Fit';
+    if(el) el.innerHTML = '<span class="fo">'+esc(t.slice(0,2))+'</span>'+esc(t.slice(2)); })();
+
+  // ---- Map ----
+  const FOCUS_ZOOM = CONFIG.focusZoom || 15;
+  const map = L.map('map', {
+    zoomControl:false,
+    zoomSnap:0,             // continuous — smooth zoom, no jerky jumps
+    zoomDelta:1,
+    wheelPxPerZoomLevel:72, // gentle, controllable wheel zoom
+    minZoom:CONFIG.minZoom||10, maxZoom:CONFIG.maxZoom||16
+  }).setView(CONFIG.center, CONFIG.zoom);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19
+  }).addTo(map);
+
+  function icon(g, active){
+    const sz = active?42:34;
+    return L.divIcon({ className:'',
+      html:`<div class="pin" style="width:${sz}px;height:${sz}px;background:${colorFor(g)};${active?'box-shadow:3px 4px 0 rgba(35,48,59,.45);':''}"><span>🏋️</span></div>`,
+      iconSize:[sz,sz], iconAnchor:[sz/2,sz] });
+  }
+
+  const markers = {};
+  GYMS.forEach(g=>{
+    const m = L.marker(g.coords, {icon:icon(g,false)}).addTo(map);
+    m.bindTooltip(tipHtml(g), {direction:'top', offset:[0,-32], opacity:1, className:'pin-tip'});
+    m.on('click', ()=>{ if(compareMode){ compareLoc[brandOf(g)]=g.id; addCompare(brandOf(g)); } else selectLocation(g.id); });
+    markers[g.id] = m;
+  });
+  map.on('click', ()=>{ if(compareMode) exitCompare(); else resetToAll(); });
+
+  const allBounds = L.latLngBounds(GYMS.map(g=>g.coords));
+  map.fitBounds(allBounds, {padding:[70,70], maxZoom: CONFIG.fitMaxZoom || CONFIG.zoom || 12});
+
+  // ---- Brand groups ----
+  const brands = [];
+  const brandMap = {};
+  GYMS.forEach(g=>{ const b=brandOf(g); if(!brandMap[b]){brandMap[b]=[]; brands.push(b);} brandMap[b].push(g); });
+
+  // ---- Left navigator (brands only) ----
+  const listEl = document.getElementById('sb-list');
+  const allItem = document.createElement('button');
+  allItem.className = 'sb-all active';
+  allItem.innerHTML = '★<span class="alltext"> All gyms</span>';
+  allItem.onclick = ()=>{ exitCompare(); resetToAll(true); };
+  listEl.appendChild(allItem);
+
+  const headEls = {};
+  brands.forEach(b=>{
+    const h = document.createElement('button'); h.className='brand-h';
+    h.innerHTML = `<span class="bdot" style="background:${colorFor(brandMap[b][0])}"></span><span class="bname">${esc(b)}</span><span class="bshort">${esc(SHORT_LABEL[b]||b.slice(0,4))}</span><span class="bcount">${brandMap[b].length}</span>`;
+    h.onclick = ()=>{ compareMode ? addCompare(b) : selectBrand(b); };
+    headEls[b] = h; listEl.appendChild(h);
+  });
+
+  // ---- Shared selection state (keeps map + nav + detail in sync) ----
+  function setBrandActive(b){
+    allItem.classList.toggle('active', !b);
+    Object.entries(headEls).forEach(([k,e])=>e.classList.toggle('active', k===b));
+  }
+  function setActivePins(){
+    GYMS.forEach(g=>{
+      markers[g.id].setIcon(icon(g, g.id===selectedId));
+      markers[g.id].setOpacity(matches(g)?1:0.5);
+    });
+  }
+  function matches(g){ return !brandFilter || brandOf(g)===brandFilter; }
+
+  function resetToAll(fly){
+    brandFilter = null; selectedId = null;
+    setBrandActive(null); closeBoard();
+    setActivePins();
+    if(fly) map.flyToBounds(allBounds, {padding:[70,70], maxZoom:10, duration:.6});
+  }
+  function selectBrand(b){
+    brandFilter = b; setBrandActive(b);
+    openBoard(brandMap[b][0].id, false);   // detail with location tabs
+    setActivePins();
+    const pts = brandMap[b].map(g=>g.coords);
+    map.flyToBounds(L.latLngBounds(pts), {padding:[110,110], maxZoom:13, duration:.6});
+  }
+  function selectLocation(id){
+    const g = GYMS.find(x=>x.id===id); if(!g) return;
+    brandFilter = brandOf(g); setBrandActive(brandFilter);
+    openBoard(id, true);
+    setActivePins();
+  }
+
+
+  // ---- Collapsible sidebar (slim strip) ----
+  const sidebar = document.getElementById('sidebar');
+  const sbToggle = document.getElementById('sb-toggle');
+  function setCollapsed(c){ sidebar.classList.toggle('collapsed', c); sbToggle.textContent = c?'›':'‹'; sbToggle.setAttribute('aria-label', c?'Expand brand list':'Collapse brand list'); }
+  sbToggle.onclick = ()=>setCollapsed(!sidebar.classList.contains('collapsed'));
+  setCollapsed(false);   // desktop starts expanded; mobile uses the horizontal bar (CSS)
+  if (CONFIG.features && CONFIG.features.comparePage) {
+    const bl = document.getElementById('browse-link'); if (bl) bl.style.display = '';
+  }
+
+  // ---- Detail board ----
+  const board = document.getElementById('board');
+  const tabsEl = document.getElementById('b-tabs');
+  document.getElementById('bclose').onclick = ()=>resetToAll();
+  document.getElementById('b-compare').onclick = ()=>{ if(selectedId){ const g=GYMS.find(x=>x.id===selectedId); enterCompare(brandOf(g), selectedId); } };
+
+  function buildTabs(brand, activeId){
+    const group = brandMap[brand] || [];
+    if(group.length < 2){ tabsEl.style.display='none'; tabsEl.innerHTML=''; return; }
+    // only show this brand's locations within the current map view (+ the active one)
+    const b = map.getBounds();
+    let inView = group.filter(g => b.contains(g.coords));
+    if(activeId && !inView.some(g=>g.id===activeId)){ const a=group.find(g=>g.id===activeId); if(a) inView=[a].concat(inView); }
+    if(inView.length < 2){ tabsEl.style.display='none'; tabsEl.innerHTML=''; return; }
+    tabsEl.innerHTML = '';
+    inView.forEach(g=>{
+      const t = document.createElement('button');
+      t.className = 'tab'+(g.id===activeId?' active':'');
+      t.textContent = pillLabel(g);
+      t.onclick = (ev)=>{ ev.stopPropagation(); selectLocation(g.id); };
+      tabsEl.appendChild(t);
+    });
+    tabsEl.style.display = 'flex';
+    centerActivePill(tabsEl);
+  }
+  // click-and-drag to scroll a pill strip horizontally (mouse); a drag won't trigger the pill click
+  function enableDragScroll(el){
+    let down=false, startX=0, startScroll=0, moved=false, captured=false, pid=null;
+    el.addEventListener('pointerdown', e=>{ if(e.pointerType!=='mouse') return; down=true; moved=false; captured=false; pid=e.pointerId; startX=e.clientX; startScroll=el.scrollLeft; });
+    el.addEventListener('pointermove', e=>{ if(!down) return; const dx=e.clientX-startX;
+      if(!moved && Math.abs(dx)>4){ moved=true; el.classList.add('dragging'); try{ el.setPointerCapture(pid); captured=true; }catch(_){} }
+      if(moved) el.scrollLeft = startScroll - dx; });
+    const end=()=>{ if(!down) return; down=false; el.classList.remove('dragging'); if(captured){ try{el.releasePointerCapture(pid);}catch(_){} captured=false; } };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    // swallow only the click that ends an actual drag, so taps still select
+    el.addEventListener('click', e=>{ if(moved){ e.stopPropagation(); e.preventDefault(); moved=false; } }, true);
+  }
+  function centerActivePill(el){ const at=el.querySelector('.tab.active'); if(at){ el.scrollLeft = at.offsetLeft - (el.clientWidth - at.offsetWidth)/2; } }
+  // apply drag-scroll to every horizontal pill strip inside a rendered detail block
+  function wireScrollers(root){ root.querySelectorAll('.tags, .ptabs').forEach(enableDragScroll); }
+  // price sub-tab switching (delegated → works in the detail board and in compare panels)
+  document.addEventListener('click', e=>{
+    const t = e.target.closest('.ptab'); if(!t) return;
+    const wrap = t.closest('.pricewrap'); if(!wrap) return;
+    const key = t.getAttribute('data-pg');
+    wrap.querySelectorAll('.ptab').forEach(b=>b.classList.toggle('active', b===t));
+    wrap.querySelectorAll('.pgroup').forEach(pg=>{ pg.style.display = pg.getAttribute('data-pg')===key ? '' : 'none'; });
+  });
+  enableDragScroll(tabsEl);
+  // refresh the tab strip to the viewport as the map pans/zooms
+  map.on('moveend', ()=>{ const bd=document.getElementById('board'); if(bd && bd.classList.contains('open') && selectedId){ const g=GYMS.find(x=>x.id===selectedId); if(g) buildTabs(brandOf(g), selectedId); } });
+
+  function hoursRows(g){
+    if(!DAYS.some(d=>g.hours&&g.hours[d])){
+      const note = (g.hours&&g.hours.note) || 'See website.';
+      // "open" notes (24/7 etc.) get the same highlight as the today row
+      if(/24\/7|24 ?hour|always open|open 24/i.test(note))
+        return `<div class="row today"><span class="k">Every day</span><span class="v">${esc(note.replace(/\.$/,''))}</span></div>`;
+      return `<div class="note">${esc(note)}</div>`;
+    }
+    const wk = ["Mon","Tue","Wed","Thu","Fri"];
+    const rows = [];
+    // collapse consecutive identical weekdays (Mon–Fri) into ranges
+    for(let i=0;i<wk.length;){
+      const v = g.hours[wk[i]] || '—';
+      let j = i;
+      while(j+1<wk.length && (g.hours[wk[j+1]]||'—')===v) j++;
+      const days = wk.slice(i,j+1);
+      rows.push({ label: i===j ? wk[i] : `${wk[i]}–${wk[j]}`, v, today: days.includes(todayKey) });
+      i = j+1;
+    }
+    // Saturday and Sunday on their own
+    ["Sat","Sun"].forEach(d=> rows.push({ label:d, v:g.hours[d]||'—', today:d===todayKey }));
+    return rows.map(r=>
+      `<div class="row ${r.today?'today':''}"><span class="k">${r.label}${r.today?' · today':''}</span><span class="v">${esc(r.v)}</span></div>`).join('');
+  }
+  function priceRows(g){
+    return (g.prices||[]).map(p=>`<div class="row"><span class="k">${esc(p.label)}</span><span class="v price-v">${esc(p.value)}</span></div>`).join('');
+  }
+  function fmtDate(iso){ const d=new Date(iso+'T00:00:00'); return isNaN(d)?iso:d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+  function priceGroups(g){
+    const rows = arr => arr.map(p=>`<div class="row"><span class="k">${esc(p.label)}</span><span class="v price-v">${esc(p.value)}</span></div>`).join('');
+    const groups = [
+      {key:'subs',    label:'Subscriptions', arr:g.subscriptions||[]},
+      {key:'passes',  label:'Prepaid',       arr:g.passes||[]},
+      {key:'courses', label:'Courses',       arr:g.courses||[]}
+    ].filter(gr=>gr.arr.length);
+    if(!groups.length) return '';
+    if(groups.length === 1) return rows(groups[0].arr);   // no tabs needed for a single group
+    const tabs = `<div class="ptabs">${groups.map((gr,i)=>`<button class="ptab${i===0?' active':''}" data-pg="${gr.key}">${esc(gr.label)}</button>`).join('')}</div>`;
+    const bodies = groups.map((gr,i)=>`<div class="pgroup" data-pg="${gr.key}"${i===0?'':' style="display:none"'}>${rows(gr.arr)}</div>`).join('');
+    return `<div class="pricewrap">${tabs}${bodies}</div>`;
+  }
+  function offerHtml(g){
+    if(!g.offer) return '';
+    let tag='', cls='offer';
+    if(g.offerExpires){
+      const days = Math.ceil((new Date(g.offerExpires+'T23:59:59') - new Date())/86400000);
+      if(days < 0){ cls='offer expired'; tag=' · expired '+fmtDate(g.offerExpires); }
+      else if(days === 0){ tag=' · ends today'; }
+      else { tag=' · '+days+' day'+(days>1?'s':'')+' left'; }
+    }
+    return `<div class="${cls}"><span>🎁</span><span>${esc(g.offer)}<span class="offer-when">${esc(tag)}</span></span></div>`;
+  }
+  function detailHtml(g){
+    let html = '';
+    html += `<div class="sec"><div class="pricebig">${esc(g.priceMonthly||'—')}</div>${priceGroups(g)}</div>`;
+    html += `<div class="sec hours"><h4>${g.classOnly?'Class times':'Opening hours'}</h4>${hoursRows(g)}`;
+    if(g.hours && g.hours.note && DAYS.some(d=>g.hours[d])) html += `<div class="note">${esc(g.hours.note)}</div>`;
+    html += `</div>`;
+    if(g.classes && g.classes.length)
+      html += `<div class="sec"><h4>Classes</h4><div class="tags">${g.classes.map(c=>`<span>${esc(c)}</span>`).join('')}</div></div>`;
+    if(g.amenities && g.amenities.length)
+      html += `<div class="sec"><h4>Amenities</h4><div class="tags">${g.amenities.map(a=>`<span>${esc(a)}</span>`).join('')}</div></div>`;
+    html += `<div class="sec"><h4>Contact</h4>`;
+    if(g.address) html += `<div class="row"><span class="k">Address</span><span class="v">${esc(g.address)}</span></div>`;
+    if(g.phone)   html += `<div class="row"><span class="k">Phone</span><span class="v"><a href="tel:${esc(g.phone.replace(/\s/g,''))}">${esc(g.phone)}</a></span></div>`;
+    if(g.email)   html += `<div class="row"><span class="k">Email</span><span class="v"><a href="mailto:${esc(g.email)}">${esc(g.email)}</a></span></div>`;
+    if(g.website) html += `<div class="row"><span class="k">Website</span><span class="v"><a href="${esc(g.website)}" target="_blank" rel="noopener">${esc(g.website.replace(/^https?:\/\//,'').replace(/\/$/,''))}</a></span></div>`;
+    if(g.facebook) html += `<div class="row"><span class="k">${/instagram/.test(g.facebook)?'Instagram':'Facebook'}</span><span class="v"><a href="${esc(g.facebook)}" target="_blank" rel="noopener">Page ↗</a></span></div>`;
+    const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${g.coords[0]},${g.coords[1]}`;
+    const gquery = encodeURIComponent(g.name + ' ' + (g.address || g.town || ''));
+    html += `<div class="row"><span class="k">Directions</span><span class="v"><a href="${gmaps}" target="_blank" rel="noopener">Open in Maps ↗</a></span></div>`;
+    html += `<div class="row"><span class="k">Google</span><span class="v"><a href="https://www.google.com/maps/search/?api=1&query=${gquery}" target="_blank" rel="noopener">Reviews &amp; photos ↗</a></span></div></div>`;
+    html += offerHtml(g);
+    if(g.photo) html += `<img class="ph" src="${esc(g.photo)}" alt="${esc(g.name)}" onerror="this.style.display='none'" style="margin-top:4px">`;
+    if(g.notes) html += `<div class="sec"><h4>About</h4><div style="font-size:13.5px;color:#3b4a57;font-weight:500">${esc(g.notes)}</div></div>`;
+    if(!g.verified) html += `<div class="unverified">⚠︎ Some details unconfirmed — please verify with the gym.</div>`;
+    if(typeof DATA_UPDATED!=='undefined') html += `<div class="updated">Data last updated ${esc(fmtDate(DATA_UPDATED))}</div>`;
+    return html;
+  }
+
+  function openBoard(id, fly){
+    const g = GYMS.find(x=>x.id===id); if(!g) return;
+    selectedId = id;
+    if(fly) map.panTo(g.coords, {animate:true, duration:.5});  // move to the pin, keep current zoom
+
+    buildTabs(brandOf(g), id);
+    document.getElementById('b-name').textContent = brandOf(g);
+    document.getElementById('b-sub').textContent = `${g.type} · ${g.town}, ${g.island}`;
+
+    const body = document.getElementById('bbody');
+    body.innerHTML = detailHtml(g);
+    wireScrollers(body);
+    body.scrollTop = 0;
+    board.classList.add('open');
+  }
+
+  function closeBoard(){ board.classList.remove('open'); selectedId = null; }
+
+  // ---- Inline compare: brand panels anchored right, added via the left nav ----
+  // compareList holds brand names; index 0 = the kept panel (stays on the right).
+  const compareRow = document.getElementById('compare-row');
+
+  function comparePanel(brand){
+    const group = brandMap[brand];
+    const id = compareLoc[brand] || group[0].id;
+    const g = GYMS.find(x=>x.id===id);
+    const tabs = group.length > 1
+      ? `<div class="ctabs">${group.map(x=>`<button class="tab${x.id===id?' active':''}" data-tab="${esc(brand)}__${esc(x.id)}">${esc(pillLabel(x))}</button>`).join('')}</div>` : '';
+    return `<div class="cpanel">
+      <div class="cph"><button class="cpx" data-rm="${esc(brand)}" aria-label="Remove">×</button>
+        <h2>${esc(brand)}</h2><div class="sub">${esc(g.type)} · ${esc(g.town)}, ${esc(g.island)}</div></div>
+      ${tabs}
+      <div class="cpb">${detailHtml(g)}</div></div>`;
+  }
+  function renderCompare(){
+    // kept (index 0) on the right -> reverse so it renders last; empty hint sits at far left
+    const panels = compareList.slice().reverse().map(comparePanel).join('');
+    const empty = compareList.length < 3 ? `<div class="cpanel empty">＋ Pick a brand on the left<br>to compare it here</div>` : '';
+    compareRow.innerHTML = empty + panels;
+    compareRow.querySelectorAll('[data-rm]').forEach(btn=>btn.onclick=(e)=>{ e.stopPropagation(); removeCompare(btn.getAttribute('data-rm')); });
+    compareRow.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=(e)=>{ e.stopPropagation();
+      const [b,i]=btn.getAttribute('data-tab').split('__'); compareLoc[b]=i; renderCompare(); });
+    compareRow.querySelectorAll('.ctabs').forEach(el=>{ enableDragScroll(el); centerActivePill(el); });
+    wireScrollers(compareRow);
+    const set = new Set();
+    compareList.forEach(b=>brandMap[b].forEach(x=>set.add(x.id)));
+    GYMS.forEach(g=>{ markers[g.id].setIcon(icon(g, set.has(g.id))); markers[g.id].setOpacity(set.size? (set.has(g.id)?1:0.5) : 1); });
+  }
+  function enterCompare(brand, locId){
+    compareMode = true;
+    compareList = brand ? [brand] : [];
+    if(brand && locId) compareLoc[brand] = locId;
+    closeBoard();
+    document.body.classList.add('compare-on');
+    renderCompare();
+  }
+  function addCompare(brand){
+    if(compareList.includes(brand)){ renderCompare(); return; }
+    if(compareList.length >= 3) return;   // up to 3 side by side
+    compareList.push(brand);              // newest renders to the left; kept stays on the right
+    renderCompare();
+  }
+  function removeCompare(brand){
+    compareList = compareList.filter(b=>b!==brand);
+    if(!compareList.length){ exitCompare(); return; }
+    renderCompare();
+  }
+  function exitCompare(){
+    if(!compareMode) return;
+    compareMode = false; compareList = [];
+    document.body.classList.remove('compare-on');
+    compareRow.innerHTML = '';
+    setActivePins();
+  }
+
+  // Escape closes compare / detail
+  document.addEventListener('keydown', e=>{
+    if(e.key!=='Escape') return;
+    if(compareMode) exitCompare();
+    else if(board.classList.contains('open')) resetToAll();
+  });
+
+  // initial state
+  setActivePins();
+
+  // Deep-link: open a location if ?focus=<id>
+  const fid = new URLSearchParams(location.search).get('focus');
+  if(fid && GYMS.some(g=>g.id===fid)) setTimeout(()=>selectLocation(fid), 400);
+})();
+</script>
+</body>
+</html>

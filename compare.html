@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Browse &amp; compare</title>
+<meta name="theme-color" content="#ffd23f" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23ff7a59'/%3E%3Ctext x='50' y='52' font-size='58' text-anchor='middle' dominant-baseline='central'%3E%F0%9F%8F%8B%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#fdf6e9; --panel:#fff; --panel-2:#fff8ed; --ink:#23303b; --muted:#6b7b88;
+    --accent:#ff7a59; --accent-2:#19b6c9; --yellow:#ffd23f; --green:#2dc26b; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Fredoka",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);padding:0 0 60px}
+  a{color:#0f8d9c;text-decoration:none;font-weight:500}
+  a:hover{text-decoration:underline}
+  header{position:sticky;top:0;z-index:10;background:var(--yellow);border-bottom:3px solid var(--ink);
+    display:flex;align-items:center;gap:12px;padding:12px 18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:21px}
+  .brand .mark{width:32px;height:32px;border-radius:9px;background:var(--accent);border:2.5px solid var(--ink);
+    display:grid;place-items:center;font-size:16px;transform:rotate(-5deg)}
+  .brand .fo{color:var(--accent)}
+  .back{margin-left:auto;background:#fff;border:2.5px solid var(--ink);border-radius:999px;padding:8px 14px;
+    font-weight:600;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+  .back:hover{text-decoration:none;background:var(--panel-2)}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px 16px}
+  h1{font-size:23px;margin:4px 0 2px}
+  .lede{color:var(--muted);font-size:14.5px;margin:0 0 16px}
+  .filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+  .chip{font-size:12.5px;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:999px;border:2.5px solid var(--ink);
+    background:#fff;color:var(--ink);box-shadow:2px 2px 0 var(--ink);display:inline-flex;align-items:center;gap:6px}
+  .chip:active{transform:translate(2px,2px);box-shadow:none}
+  .chip.on{background:var(--accent-2);color:#fff}
+  .chip .dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink)}
+  .chip.on .dot{border-color:#fff}
+  .count{color:var(--muted);font-size:13px;margin:6px 2px 10px;font-weight:600}
+  .tablecard{background:#fff;border:3px solid var(--ink);border-radius:18px;box-shadow:5px 5px 0 var(--ink);overflow:hidden}
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:680px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:2px solid #ede3d2;font-size:14px;vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:600;background:#fff;
+    position:sticky;top:0;cursor:pointer;white-space:nowrap;user-select:none}
+  th .ar{opacity:.5;font-size:10px}
+  tr:last-child td{border-bottom:none}
+  tr.cheapest td .mo{color:#13934f}
+  .gname{font-weight:600;font-size:15px}
+  .brandcell{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .brandcell .dot{width:13px;height:13px;border-radius:50%;border:2.5px solid var(--ink);flex:none}
+  .mo{font-weight:700;font-size:15px;white-space:nowrap}
+  .pill{display:inline-block;background:var(--green);color:#fff;border:2px solid var(--ink);font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px}
+  .am{display:flex;flex-wrap:wrap;gap:4px;max-width:280px}
+  .am span{font-size:10.5px;background:var(--panel-2);border:2px solid var(--ink);padding:1px 7px;border-radius:999px}
+  .maplink{white-space:nowrap;font-weight:600}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="mark">🏋️</span><span id="brandname"></span></div>
+  <a class="back" href="index.html">← Back to map</a>
+</header>
+<div class="wrap">
+  <h1 id="title">Browse &amp; compare</h1>
+  <p class="lede" id="lede"></p>
+  <div class="filters" id="brandFilters"></div>
+  <div class="filters" id="areaFilters"></div>
+  <div class="count" id="count"></div>
+  <div class="tablecard"><div class="scroll"><table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div></div>
+  <p class="foot">Prices are chain-level / approximate — confirm on each gym's site. Click a column to sort.</p>
+</div>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script>
+(function(){
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const brandOf = g => g.name.split(" — ")[0];
+  const colorFor = g => (CONFIG.brandColors&&CONFIG.brandColors[brandOf(g)]) || "#ff7a59";
+  const monthlyNum = g => { const m=String(g.priceMonthly||'').match(/(\d[\d.,]*)/); return m?parseInt(m[1].replace(/[.,]/g,''),10):null; };
+
+  document.getElementById('brandname').innerHTML = '<span class="fo">'+esc((CONFIG.title||'Fit').slice(0,2))+'</span>'+esc((CONFIG.title||'Fit').slice(2));
+  document.title = (CONFIG.title||'Fit') + ' — browse & compare';
+  document.getElementById('title').textContent = 'Browse & compare — ' + (CONFIG.tagline || '');
+  document.getElementById('lede').textContent = GYMS.length + ' locations. Filter by brand or area, sort by any column.';
+
+  let brandF = null, areaF = null, sortKey = 'price', sortDir = 1;
+
+  const brands = [...new Set(GYMS.map(brandOf))];
+  const areas  = [...new Set(GYMS.map(g=>g.town).filter(Boolean))].sort();
+
+  // brand filter chips
+  const bf = document.getElementById('brandFilters');
+  const allB = chip('All brands', null, true); allB.onclick=()=>{brandF=null; mark(bf,allB); render();}; bf.appendChild(allB);
+  brands.forEach(b=>{ const c=chip(b, (CONFIG.brandColors&&CONFIG.brandColors[b])||'#ff7a59', false);
+    c.onclick=()=>{brandF=b; mark(bf,c); render();}; bf.appendChild(c); });
+  // area filter chips
+  const af = document.getElementById('areaFilters');
+  const allA = chip('All areas', null, true); allA.onclick=()=>{areaF=null; mark(af,allA); render();}; af.appendChild(allA);
+  areas.forEach(a=>{ const c=chip(a, null, false); c.onclick=()=>{areaF=a; mark(af,c); render();}; af.appendChild(c); });
+
+  function chip(label, dot, on){ const b=document.createElement('button'); b.className='chip'+(on?' on':'');
+    b.innerHTML=(dot?`<span class="dot" style="background:${dot}"></span>`:'')+esc(label); return b; }
+  function mark(container, el){ [...container.children].forEach(c=>c.classList.toggle('on', c===el)); }
+
+  const cols = [
+    {k:'name',  t:'Gym'},
+    {k:'brand', t:'Brand'},
+    {k:'area',  t:'Area'},
+    {k:'price', t:'Monthly'},
+    {k:'am',    t:'Amenities', nosort:true},
+    {k:'map',   t:'Map', nosort:true}
+  ];
+  function renderHead(){
+    document.getElementById('head').innerHTML = cols.map(c=>{
+      const arrow = (!c.nosort && c.k===sortKey) ? ` <span class="ar">${sortDir>0?'▲':'▼'}</span>` : '';
+      return `<th data-k="${c.k}" ${c.nosort?'style="cursor:default"':''}>${c.t}${arrow}</th>`;
+    }).join('');
+    document.querySelectorAll('#head th').forEach(th=>{ const k=th.getAttribute('data-k');
+      if(cols.find(c=>c.k===k).nosort) return;
+      th.onclick=()=>{ if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=1;} render(); };
+    });
+  }
+
+  function render(){
+    renderHead();
+    let list = GYMS.filter(g=> (!brandF||brandOf(g)===brandF) && (!areaF||g.town===areaF) );
+    const val = (g)=>({ name:g.name.toLowerCase(), brand:brandOf(g).toLowerCase(), area:(g.town||'').toLowerCase(),
+                        price: monthlyNum(g) }[sortKey]);
+    list.sort((a,b)=>{
+      let va=val(a), vb=val(b);
+      if(sortKey==='price'){ va=(va==null?Infinity:va); vb=(vb==null?Infinity:vb); return (va-vb)*sortDir; }
+      return String(va).localeCompare(String(vb))*sortDir;
+    });
+    const nums = list.map(monthlyNum).filter(n=>n!=null);
+    const min = nums.length?Math.min(...nums):null;
+    document.getElementById('count').textContent = list.length + ' of ' + GYMS.length + ' shown';
+    document.getElementById('rows').innerHTML = list.map(g=>{
+      const mn=monthlyNum(g), cheap=(mn!=null && mn===min && nums.length>1);
+      return `<tr class="${cheap?'cheapest':''}">
+        <td><div class="gname">${esc(g.name)}</div></td>
+        <td><div class="brandcell"><span class="dot" style="background:${colorFor(g)}"></span>${esc(brandOf(g))}</div></td>
+        <td>${esc(g.town||'—')}</td>
+        <td><span class="mo">${esc(g.priceMonthly||'—')}</span>${cheap?' <span class="pill">cheapest</span>':''}</td>
+        <td><div class="am">${(g.amenities||[]).slice(0,5).map(a=>`<span>${esc(a)}</span>`).join('')}</div></td>
+        <td><a class="maplink" href="index.html?focus=${encodeURIComponent(g.id)}">View ↗</a></td>
+      </tr>`;
+    }).join('');
+  }
+
+  render();
+
+  if(typeof DATA_UPDATED!=='undefined'){
+    const f=new Date(DATA_UPDATED+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    document.querySelector('.foot').textContent += ' · Data last updated '+f;
+  }
+})();
+</script>
+</body>
+</html>
