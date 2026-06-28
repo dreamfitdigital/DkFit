@@ -7,56 +7,64 @@
  * Naming: "Brand — Location". island = "Zealand" (greater CPH region).
  * --------------------------------------------------------------- */
 
-const DATA_UPDATED = "2026-06-27";
+const DATA_UPDATED = "2026-06-28";
 const ISLAND = "Zealand";
 
 /* ---- SATS ---- */
 const SATS_CLASSES = ["Cycling","BodyPump","Yoga","HIIT","Pilates","Zumba","Core","Dance"];
-const SATS_OFFER = "Free sign-up for new members — see sats.dk for current campaigns.";
-const SATS_OFFER_EXP = "";
-const SATS_SUBS = [{label:"Monthly", value:"from 399 kr/mo"}];
+const SATS_OFFER = "Campaign (new members): 0 kr until 1 Aug 2026 + free sign-up; then normal price. 20% off with valid student/youth/senior doc.";
+const SATS_OFFER_EXP = "2026-08-01";
+const SATS_SUBS = [{label:"Basic · home centre", value:"549 kr/mo"},{label:"Flexible · all DK centres", value:"599 kr/mo"},{label:"Premium · all Nordic centres", value:"699 kr/mo"},{label:"Students / under-25 / seniors", value:"−20%"}];
 const sats=(id,label,town,lat,lng,addr,phone)=>({
   id:"sats-"+id, name:"SATS — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:phone||"", email:"", website:"https://www.sats.dk", facebook:"", photo:"", rating:null,
-  priceMonthly:"From 399 kr/mo", subscriptions:SATS_SUBS, passes:[], courses:[],
+  priceMonthly:"From 549 kr/mo", subscriptions:SATS_SUBS, passes:[], courses:[],
   hours:{ Mon:"06:00–22:00",Tue:"06:00–22:00",Wed:"06:00–22:00",Thu:"06:00–22:00",Fri:"06:00–22:00",Sat:"08:00–22:00",Sun:"08:00–22:00", note:"Typical SATS hours — confirm per centre on sats.dk." },
-  classes:SATS_CLASSES, amenities:["Cardio","Strength","Classes","Sauna"], offer:SATS_OFFER, offerExpires:SATS_OFFER_EXP, notes:"", verified:false });
+  classes:SATS_CLASSES, amenities:["Cardio","Strength","Classes","Sauna"], offer:SATS_OFFER, offerExpires:SATS_OFFER_EXP, notes:"Same price under/over 30 (the age selector is for VAT only). 20% off with valid student/youth/senior doc. Sign-up fee (oprettelse) normally applies — waived in the current campaign.", verified:false });
 
 /* ---- PureGym ---- */
 const PUREGYM_CLASSES = ["Yoga","Zumba","Pilates","Step","Dance","BodyCombat","Circuit","Boxing","Cardio"];
-const PUREGYM_SUBS = [{label:"Single-club", value:"249 kr/mo"},{label:"Standard", value:"319 kr/mo"},{label:"Unlimited · all clubs", value:"399 kr/mo"},{label:"ALL-IN add-on", value:"+149 kr/mo"}];
-const PUREGYM_PASSES = [{label:"Day pass (drop-in)", value:"99 kr"},{label:"1 week", value:"159 kr"},{label:"1 month prepaid", value:"299 kr"},{label:"3 months", value:"749 kr"},{label:"6 months", value:"1.399 kr"},{label:"12 months", value:"2.499 kr"}];
+/* Normal monthly prices, split by age. 50%-off + free-signup campaign to 31 Aug 2026
+   (e.g. under-30 Core 149,50 / 30+ Core 189,50 kr/mo). */
+const PUREGYM_SUBS = [{label:"Core · home club", value:"379 kr/mo"},{label:"Plus · 122 centres", value:"429 kr/mo"},{label:"Unlimited · all 128 centres", value:"449 kr/mo"}];
+const PUREGYM_SUBS_U30 = [{label:"Core · home club", value:"299 kr/mo"},{label:"Plus · 122 centres", value:"379 kr/mo"},{label:"Unlimited · all 128 centres", value:"399 kr/mo"}];
+const PUREGYM_PASSES = [{label:"1 day", value:"99 kr"},{label:"1 week", value:"259 kr"},{label:"1 month", value:"479 kr"},{label:"3 months", value:"1.149 kr"},{label:"6 months", value:"2.099 kr"},{label:"12 months", value:"3.799 kr"},{label:"12 months · all centres", value:"4.490 kr"}];
 const PUREGYM_COURSES = [{label:"Personal training (12-week forløb)", value:"see site"}];
+const PUREGYM_OFFER = "50% off + free sign-up until 31 Aug 2026 (campaign from ~149,50 kr/mo). Listed prices are normal; under-30 is cheaper than 30+.";
+const PUREGYM_OFFER_EXP = "2026-08-31";
 const PG_24 = { Mon:"00:00–24:00",Tue:"00:00–24:00",Wed:"00:00–24:00",Thu:"00:00–24:00",Fri:"00:00–24:00",Sat:"00:00–24:00",Sun:"00:00–24:00", note:"Open ~24h; staffed hours vary." };
 const PG_DAY = { Mon:"05:00–00:00",Tue:"05:00–00:00",Wed:"05:00–00:00",Thu:"05:00–00:00",Fri:"05:00–00:00",Sat:"05:00–00:00",Sun:"05:00–00:00", note:"Staffed hours vary." };
 const pg=(id,label,town,lat,lng,addr,hrs,img)=>({
   id:"pg-"+id, name:"PureGym — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:"", email:"", website:"https://www.puregym.dk/find-center/"+id, facebook:"", photo:"", rating:null,
-  priceMonthly:"From 249 kr/mo", subscriptions:PUREGYM_SUBS, passes:PUREGYM_PASSES, courses:PUREGYM_COURSES,
-  hours:hrs, classes:PUREGYM_CLASSES, amenities:["Cardio","Strength","Free weights","Classes"], offer:"", notes:"", verified:true });
+  priceMonthly:"From 299 kr/mo (u30) · 379 (30+)", subscriptions:PUREGYM_SUBS, subsU30:PUREGYM_SUBS_U30, passes:PUREGYM_PASSES, courses:PUREGYM_COURSES,
+  hours:hrs, classes:PUREGYM_CLASSES, amenities:["Cardio","Strength","Free weights","Classes"], offer:PUREGYM_OFFER, offerExpires:PUREGYM_OFFER_EXP, notes:"", verified:true });
 
 /* ---- LOOP ---- */
-const LOOP_SUBS = [{label:"Monthly (per 30 days)", value:"289 kr"},{label:"Admin fee", value:"+10 kr/mo"}];
+const LOOP_SUBS = [{label:"Monthly (per 30 days)", value:"269 kr"},{label:"Student · under 25", value:"229 kr"},{label:"Admin fee", value:"+10 kr/mo"}];
 const LOOP_OFFER = "Intro offer: 100 kr/mo until 12 Aug.";
 const LOOP_OFFER_EXP = "2026-08-12";
 const loop=(id,label,town,lat,lng,addr,phone,email)=>({
   id:"loop-"+id, name:"LOOP Fitness — "+label, type:"Circuit gym", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:phone||"", email:email||"", website:"https://loopfitness.dk/centre/loop-fitness-"+id+"/", facebook:"", photo:"", rating:null,
-  priceMonthly:"289 kr/mo", subscriptions:LOOP_SUBS, passes:[], courses:[],
+  priceMonthly:"269 kr/mo", subscriptions:LOOP_SUBS, passes:[], courses:[],
   hours:{ Mon:"05:00–22:00",Tue:"05:00–22:00",Wed:"05:00–22:00",Thu:"05:00–22:00",Fri:"05:00–22:00",Sat:"05:00–22:00",Sun:"05:00–22:00", note:"Staffed hours vary." }, classes:[], amenities:["Circuit training","Coffee/tea"],
   offer:LOOP_OFFER, offerExpires:LOOP_OFFER_EXP, notes:"24-minute, 16-station circuit concept.", verified:true });
 
 /* ---- FitnessX (budget 24h-ish chain; membership incl. all classes, no binding) ---- */
 const FX_CLASSES = ["Cycling/Spinning","Yoga","Zumba","HIIT","Bootcamp","Body toning","Dance"];
-const FX_SUBS = [{label:"All-inclusive (gym + all classes, no binding)", value:"329 kr/mo"},{label:"Admin fee", value:"+15 kr/mo"},{label:"Træningsven add-on", value:"+200 kr/mo"}];
+const FX_SUBS_U30 = [{label:"27 centres", value:"360 kr/mo"},{label:"All 31 centres", value:"400 kr/mo"},{label:"Træningsven · train 2", value:"280 / 300 kr/mo pr. person"},{label:"Admin fee", value:"+15 kr/mo"}];
+const FX_SUBS = [{label:"Membership (30+)", value:"higher than under-30 — see fitnessx.dk"},{label:"Admin fee", value:"+15 kr/mo"}];
+const FX_OFFER = "Youth discount: lower price until you turn 30. Spar 50% the first 2 months. Træningsven = bring a buddy (cheaper per person). 30+ prices are higher — see fitnessx.dk.";
+const FX_OFFER_EXP = "";
 const FX_PASSES = [{label:"Day pass (drop-in)", value:"75 kr"}];
 const FX_HOURS = { Mon:"05:00–22:00",Tue:"05:00–22:00",Wed:"05:00–22:00",Thu:"05:00–22:00",Fri:"05:00–22:00",Sat:"07:00–22:00",Sun:"07:00–22:00", note:"Typical FitnessX access hours; staffed hours shorter — confirm per centre on fitnessx.dk." };
 const fx=(id,label,town,lat,lng,addr,path)=>({
   id:"fx-"+id, name:"FitnessX — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:"", email:"", website:"https://fitnessx.dk"+path, facebook:"", photo:"", rating:null,
-  priceMonthly:"329 kr/mo", subscriptions:FX_SUBS, passes:FX_PASSES, courses:[],
+  priceMonthly:"From 360 kr/mo (under 30)", subscriptions:FX_SUBS, subsU30:FX_SUBS_U30, passes:FX_PASSES, courses:[],
   hours:FX_HOURS, classes:FX_CLASSES, amenities:["Cardio","Strength","Classes","No binding"],
-  offer:"", notes:"Budget chain — membership includes all classes, no binding (cancel month + 1).", verified:false });
+  offer:FX_OFFER, offerExpires:FX_OFFER_EXP, notes:"Budget chain — membership includes all classes, no binding (cancel month + 1).", verified:false });
 
 const GYMS = [
   /* ---------------- SATS (28) ---------------- */

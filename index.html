@@ -163,6 +163,11 @@
   .ptab{flex:0 0 auto;white-space:nowrap;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:5px 13px;border-radius:999px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
   .ptab.active{background:var(--accent-2);color:#fff}
   .ptab:active{transform:translate(2px,2px);box-shadow:none}
+  /* age toggle (30+ / Under 30) */
+  .agetabs{display:inline-flex;border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;margin:2px 0 10px;box-shadow:2px 2px 0 var(--ink)}
+  .agetab{font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:6px 16px;border:none;background:#fff;color:var(--ink)}
+  .agetab+.agetab{border-left:2.5px solid var(--ink)}
+  .agetab.active{background:var(--ink);color:#fff}
   .note{color:var(--muted);font-size:12px;font-style:italic;margin-top:7px;font-weight:500}
   .unverified{font-size:12px;color:var(--ink);background:var(--yellow);border:2.5px solid var(--ink);padding:7px 10px;border-radius:10px;margin-top:7px;font-weight:500;box-shadow:3px 3px 0 var(--ink)}
   .cmpsimilar{display:block;width:100%;text-align:center;margin-top:6px;background:var(--accent-2);color:#fff;font-family:inherit;font-weight:600;
@@ -621,8 +626,7 @@
     brandFilter = b; setBrandActive(b);
     openBoard(brandMap[b][0].id, false);   // detail with location tabs
     setActivePins();
-    const pts = brandMap[b].map(g=>g.coords);
-    map.flyToBounds(L.latLngBounds(pts), {padding:[110,110], maxZoom:13, duration:.6});
+    // (no map move — just highlight the selected brand, keep current view)
   }
   function selectLocation(id){
     const g = GYMS.find(x=>x.id===id); if(!g) return;
@@ -698,6 +702,14 @@
     wrap.querySelectorAll('.ptab').forEach(b=>b.classList.toggle('active', b===t));
     wrap.querySelectorAll('.pgroup').forEach(pg=>{ pg.style.display = pg.getAttribute('data-pg')===key ? '' : 'none'; });
   });
+  // age toggle (30+ / Under 30) — switches which age pane (each holds its own price tabs) is shown
+  document.addEventListener('click', e=>{
+    const t = e.target.closest('.agetab'); if(!t) return;
+    const wrap = t.closest('.agewrap'); if(!wrap) return;
+    const age = t.getAttribute('data-age');
+    wrap.querySelectorAll('.agetab').forEach(b=>b.classList.toggle('active', b===t));
+    wrap.querySelectorAll('.agepane').forEach(p=>{ p.style.display = p.getAttribute('data-age')===age ? '' : 'none'; });
+  });
   enableDragScroll(tabsEl);
   // refresh the tab strip to the viewport as the map pans/zooms (debounced; rebuild only if the set changed)
   let tabTimer=null;
@@ -735,16 +747,26 @@
   function fmtDate(iso){ const d=new Date(iso+'T00:00:00'); return isNaN(d)?iso:d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
   function priceGroups(g){
     const rows = arr => arr.map(p=>`<div class="row"><span class="k">${esc(p.label)}</span><span class="v price-v">${esc(p.value)}</span></div>`).join('');
-    const groups = [
-      {key:'subs',    label:'Subscriptions', arr:g.subscriptions||[]},
-      {key:'passes',  label:'Prepaid',       arr:g.passes||[]},
-      {key:'courses', label:'Courses',       arr:g.courses||[]}
-    ].filter(gr=>gr.arr.length);
-    if(!groups.length) return '';
-    if(groups.length === 1) return rows(groups[0].arr);   // no tabs needed for a single group
-    const tabs = `<div class="ptabs">${groups.map((gr,i)=>`<button class="ptab${i===0?' active':''}" data-pg="${gr.key}">${esc(gr.label)}</button>`).join('')}</div>`;
-    const bodies = groups.map((gr,i)=>`<div class="pgroup" data-pg="${gr.key}"${i===0?'':' style="display:none"'}>${rows(gr.arr)}</div>`).join('');
-    return `<div class="pricewrap">${tabs}${bodies}</div>`;
+    const mk = subsArr => {   // one pricewrap (Subscriptions / Prepaid / Courses tabs) for a given subs set
+      const groups = [
+        {key:'subs',    label:'Subscriptions', arr:subsArr||[]},
+        {key:'passes',  label:'Prepaid',       arr:g.passes||[]},
+        {key:'courses', label:'Courses',       arr:g.courses||[]}
+      ].filter(gr=>gr.arr.length);
+      if(!groups.length) return '';
+      if(groups.length === 1) return rows(groups[0].arr);
+      const tabs = `<div class="ptabs">${groups.map((gr,i)=>`<button class="ptab${i===0?' active':''}" data-pg="${gr.key}">${esc(gr.label)}</button>`).join('')}</div>`;
+      const bodies = groups.map((gr,i)=>`<div class="pgroup" data-pg="${gr.key}"${i===0?'':' style="display:none"'}>${rows(gr.arr)}</div>`).join('');
+      return `<div class="pricewrap">${tabs}${bodies}</div>`;
+    };
+    if(g.subsU30 && g.subsU30.length){   // age-based pricing → 30+ / Under 30 toggle, each with its own Subscriptions + Prepaid
+      return `<div class="agewrap">`+
+        `<div class="agetabs"><button class="agetab active" data-age="o30">30+</button><button class="agetab" data-age="u30">Under 30</button></div>`+
+        `<div class="agepane" data-age="o30">${mk(g.subscriptions)}</div>`+
+        `<div class="agepane" data-age="u30" style="display:none">${mk(g.subsU30)}</div>`+
+      `</div>`;
+    }
+    return mk(g.subscriptions);
   }
   function offerHtml(g){
     if(!g.offer) return '';
