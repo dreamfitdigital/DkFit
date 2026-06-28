@@ -3,14 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-<title>Fit — fitness map</title>
-<meta name="description" content="Interactive map of gyms and fitness centres in the Faroe Islands — prices, opening hours, contact and amenities." />
+<title>DkFit — Copenhagen gym map</title>
+<meta name="description" content="Interactive map of gyms and fitness centres across greater Copenhagen — SATS, PureGym, LOOP, FitnessX and more, with prices, opening hours, classes and contact." />
 <meta name="theme-color" content="#ffd23f" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23ff7a59'/%3E%3Ctext x='50' y='52' font-size='58' text-anchor='middle' dominant-baseline='central'%3E%F0%9F%8F%8B%EF%B8%8F%3C/text%3E%3C/svg%3E" />
-<meta property="og:title" content="Fit — fitness map" />
-<meta property="og:description" content="Find gyms and fitness centres across the Faroe Islands — prices, opening hours, classes and contact, on one map." />
+<meta property="og:title" content="DkFit — Copenhagen gym map" />
+<meta property="og:description" content="Find gyms across greater Copenhagen on one map — compare prices, opening hours, classes and contact for SATS, PureGym, LOOP, FitnessX and more." />
 <meta property="og:type" content="website" />
-<meta name="twitter:card" content="summary" />
+<meta property="og:image" content="og-cover.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="og-cover.png" />
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -23,7 +25,7 @@
 
 <style>
   :root{
-    --bg:#fdf6e9; --panel:#ffffff; --panel-2:#fff8ed; --ink:#23303b; --muted:#6b7b88;
+    --bg:#fdf6e9; --panel:#ffffff; --panel-2:#fff8ed; --ink:#23303b; --muted:#566570;
     --accent:#ff7a59; --accent-2:#19b6c9; --yellow:#ffd23f; --green:#2dc26b; --pink:#ff6f9c;
     --r:16px;
   }
@@ -38,6 +40,15 @@
   .pin{border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid var(--ink);
     box-shadow:2px 3px 0 rgba(35,48,59,.35);display:grid;place-items:center}
   .pin span{transform:rotate(45deg);font-size:15px;line-height:1}
+  .leaflet-marker-icon:focus{outline:none}
+  .leaflet-marker-icon:focus-visible{outline:3px solid var(--accent-2);outline-offset:3px;border-radius:8px}
+  /* ---------- Near-me control + user marker ---------- */
+  .nearme{position:fixed;z-index:600;right:14px;bottom:24px;font-family:inherit;font-weight:600;font-size:14px;
+    background:var(--accent-2);color:#fff;border:2.5px solid var(--ink);border-radius:999px;padding:9px 15px;box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+  .nearme:active{transform:translate(2px,2px);box-shadow:none}
+  .nearme.on{background:#fff;color:var(--ink)}
+  .nearme:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .userdot{width:16px;height:16px;border-radius:50%;background:#1f6dff;border:3px solid #fff;box-shadow:0 0 0 2px #1f6dff,0 1px 5px rgba(0,0,0,.45)}
   /* ---------- Pin hover tooltip ---------- */
   .leaflet-tooltip.pin-tip{background:#fff;border:2.5px solid var(--ink);border-radius:13px;box-shadow:3px 3px 0 var(--ink);
     padding:8px 11px;font-family:"Fredoka",-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);font-weight:500;font-size:12.5px;max-width:240px;white-space:normal}
@@ -47,6 +58,15 @@
   .pin-tip .t-row{color:var(--muted);font-size:12px;margin-top:1px}
   .pin-tip .t-price{color:#13934f;font-weight:700;margin-top:3px}
   .pin-tip .t-price small{color:var(--muted);font-weight:500}
+  /* density polygons: remove the default SVG focus-box ("the square") */
+  .leaflet-container path.leaflet-interactive:focus,
+  .leaflet-container path.leaflet-interactive:focus-visible{outline:none}
+  /* zone hover tooltip — fixed comfortable width so text doesn't wrap per-word */
+  .leaflet-tooltip.zone-tip{width:230px;max-width:230px;line-height:1.5}
+  .zone-tip .zt-name{font-weight:700;font-size:14px;margin-bottom:3px}
+  .zone-tip .zt-kind{font-weight:500;color:var(--muted);font-size:12px;text-transform:capitalize}
+  .zone-tip .zt-stat{font-size:12.5px;color:var(--ink)}
+  .zone-tip .zt-stat b{font-weight:700}
 
   /* ---------- Left brand navigator ---------- */
   .sidebar{position:fixed;left:16px;top:50%;transform:translateY(-50%);width:230px;z-index:1050;max-height:calc(100vh - 110px);
@@ -195,6 +215,44 @@
     .cpanel{width:86vw;max-height:calc(100vh - 92px)}
     .cpanel.empty{display:none}   /* on mobile the top brand bar is how you add */
   }
+  /* ---------- Density / transit overlays ---------- */
+  .map-toggles{position:fixed;z-index:1100;top:12px;left:50%;transform:translateX(-50%);display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px;max-width:calc(100vw - 28px)}
+  .density-toggle{font-family:inherit;font-weight:600;font-size:14px;
+    background:#fff;color:var(--ink);border:2.5px solid var(--ink);border-radius:999px;padding:9px 15px;box-shadow:3px 3px 0 var(--ink);cursor:pointer;white-space:nowrap}
+  .density-toggle:active{transform:translate(2px,2px);box-shadow:none}
+  .density-toggle.on{background:#fd8d3c;color:#fff}
+  #transit-toggle.on{background:#2d9cdb}
+  #parking-toggle.on{background:#1a9850}
+  #suggest-toggle.on{background:#bd0026}
+  #rent-toggle.on{background:#810f7c}
+  .density-toggle:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .cand{width:30px;height:30px;border-radius:50%;background:#1f6dff;color:#fff;border:2.5px solid #fff;
+    box-shadow:0 0 0 2px #1f6dff,2px 2px 0 rgba(35,48,59,.5);display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:14px;font-family:inherit}
+  /* right-side panel groups the legend + slider card */
+  .rpanel{position:fixed;z-index:600;right:14px;top:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-end;
+    max-height:calc(100vh - 28px);overflow:auto;pointer-events:none}
+  .rpanel>*{pointer-events:auto}
+  .opp-sliders{background:#fff;border:2.5px solid var(--ink);
+    border-radius:12px;box-shadow:3px 3px 0 var(--ink);padding:11px 13px;width:236px;font-size:12px;font-weight:600}
+  .opp-sliders .os-t{font-weight:800;margin-bottom:7px}
+  .opp-sliders label{display:grid;grid-template-columns:1fr 84px 26px;align-items:center;gap:7px;margin:5px 0}
+  .opp-sliders input[type=range]{width:84px;accent-color:#bd0026;cursor:pointer}
+  .opp-sliders span{text-align:right;font-variant-numeric:tabular-nums}
+  .opp-sliders .os-hint{margin-top:7px;font-weight:500;font-size:11px;color:var(--muted);line-height:1.35}
+  .stn{width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px rgba(35,48,59,.55)}
+  .stn.metro{background:#2d9cdb}
+  .stn.stog{background:#e2231a}
+  .legend{display:none;background:#fff;border:2.5px solid var(--ink);
+    border-radius:12px;box-shadow:3px 3px 0 var(--ink);padding:9px 11px;font-size:11.5px;font-weight:600;line-height:1.45;width:200px}
+  .legend .lg-t{font-weight:800;margin-bottom:5px}
+  .legend .lg-row{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .legend .lg-row i{width:16px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(35,48,59,.4)}
+  .legend .lg-row i.lg-star{background:#1f6dff;color:#fff;border:none;text-align:center;font-size:10px;line-height:14px}
+  @media (max-width:720px){
+    .rpanel{top:auto;bottom:80px;right:10px;gap:8px}
+    .legend{width:auto;max-width:54vw} .opp-sliders{width:54vw;max-width:240px}
+  }
 </style>
 </head>
 <body>
@@ -210,7 +268,29 @@
   <div id="sb-list" class="sb-list"></div>
 </aside>
 
-<div id="board" class="board">
+<div class="map-toggles">
+  <button id="density-toggle" class="density-toggle" aria-pressed="false" aria-label="Toggle population density (hex grid)">🗺️ Density</button>
+  <button id="districts-toggle" class="density-toggle" aria-pressed="false" aria-label="Toggle district overlay">🏙️ Districts</button>
+  <button id="parking-toggle" class="density-toggle" aria-pressed="false" aria-label="Toggle parking and access score">🅿️ Parking &amp; access</button>
+  <button id="suggest-toggle" class="density-toggle" aria-pressed="false" aria-label="Toggle site opportunity heatmap">⭐ Suggested sites</button>
+  <button id="rent-toggle" class="density-toggle" aria-pressed="false" aria-label="Toggle estimated commercial rent">💰 Rent</button>
+  <button id="transit-toggle" class="density-toggle" aria-pressed="false" aria-label="Toggle Metro and S-train stations">🚇 Transit</button>
+</div>
+<div class="rpanel">
+<div id="legend" class="legend" aria-hidden="true"></div>
+<div id="opp-sliders" class="opp-sliders" style="display:none">
+  <div class="os-t">⭐ Weight the factors</div>
+  <label>Population<input type="range" id="w-dem" min="0" max="100" value="40"><span id="v-dem">40</span></label>
+  <label>Low competition<input type="range" id="w-cmp" min="0" max="100" value="35"><span id="v-cmp">35</span></label>
+  <label>Transport<input type="range" id="w-tr" min="0" max="100" value="25"><span id="v-tr">25</span></label>
+  <label>Parking &amp; access<input type="range" id="w-pk" min="0" max="100" value="0"><span id="v-pk">0</span></label>
+  <label>Low rent<input type="range" id="w-rent" min="0" max="100" value="0"><span id="v-rent">0</span></label>
+  <div class="os-hint">Raise Parking for a car-oriented blend; raise Low rent to favour cheaper areas (better margins).</div>
+</div>
+</div>
+<button id="nearme" class="nearme" aria-label="Find gyms near me">📍 Near me</button>
+
+<div id="board" class="board" role="dialog" aria-labelledby="b-name" aria-hidden="true">
   <div class="bh">
     <div class="bh-top">
       <h2 id="b-name"></h2>
@@ -227,6 +307,7 @@
 
 <script src="config.js"></script>
 <script src="data.js"></script>
+<script src="density.js"></script>
 <script>
 (function(){
   const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -236,6 +317,9 @@
   let compareMode = false;
   let compareList = [];   // brand names; index 0 = the kept panel (stays on the right)
   let compareLoc = {};    // brand -> active location id (for chains with tabs)
+  let lastFocus = null;   // element to restore focus to when the board closes
+  let userLoc = null, userMarker = null;   // geolocation ("near me")
+  let allOff = false;     // "All gyms" pressed again → hide every pin
 
   const TYPE_COLOR = {
     "CrossFit box":"#ff6f9c","Fitness & class studio":"#ffd23f",
@@ -249,13 +333,8 @@
   const shortArea = t => (t||'').replace(/Copenhagen/i,'Cph').replace(/København/i,'Cph');
   const streetOf  = a => { const m=String(a||'').match(/^[^\d,]+/); return m?m[0].trim():''; };
   const pillLabel = g => { const ar=shortArea(g.town), st=streetOf(g.address); return st ? (ar ? ar+' · '+st : st) : ar; };
-  // hover tooltip: address + headline price + day-pass for quick comparison
-  function tipHtml(g){
-    const day = (g.passes||[]).find(p=>/day ?pass|drop-?in/i.test(p.label));
-    return `<div class="t-name"><span class="t-dot" style="background:${colorFor(g)}"></span>${esc(brandOf(g))} · ${esc(shortArea(g.town))}</div>`
-      + (g.address?`<div class="t-row">${esc(g.address)}</div>`:'')
-      + (g.priceMonthly?`<div class="t-price">${esc(g.priceMonthly)}${day?` <small>· day pass ${esc(day.value)}</small>`:''}</div>`:'');
-  }
+  // hover tooltip: price only
+  function tipHtml(g){ return `<div class="t-price">${esc(g.priceMonthly||'—')}</div>`; }
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   // ---- Branding from CONFIG ----
@@ -283,14 +362,193 @@
       iconSize:[sz,sz], iconAnchor:[sz/2,sz] });
   }
 
+  function actGym(g){ if(compareMode){ compareLoc[brandOf(g)]=g.id; addCompare(brandOf(g)); } else selectLocation(g.id); }
+  // make a marker's element keyboard-focusable & named (re-run after every setIcon, which recreates the element)
+  function applyPinA11y(g){
+    const el = markers[g.id] && markers[g.id].getElement(); if(!el) return;
+    el.setAttribute('tabindex', allOff?'-1':'0'); el.setAttribute('role','button');
+    el.setAttribute('aria-hidden', allOff?'true':'false');
+    el.setAttribute('aria-label', `${brandOf(g)} — ${pillLabel(g)}${g.priceMonthly?', '+g.priceMonthly:''}`);
+    el.style.pointerEvents = allOff ? 'none' : '';
+    el.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); actGym(g); } };
+  }
+  function applyAllPinA11y(){ GYMS.forEach(applyPinA11y); }
   const markers = {};
   GYMS.forEach(g=>{
     const m = L.marker(g.coords, {icon:icon(g,false)}).addTo(map);
     m.bindTooltip(tipHtml(g), {direction:'top', offset:[0,-32], opacity:1, className:'pin-tip'});
-    m.on('click', ()=>{ if(compareMode){ compareLoc[brandOf(g)]=g.id; addCompare(brandOf(g)); } else selectLocation(g.id); });
+    m.on('click', ()=>actGym(g));
     markers[g.id] = m;
   });
   map.on('click', ()=>{ if(compareMode) exitCompare(); else resetToAll(); });
+
+  // ---- Data overlays: density (hex), districts, parking&access, transit ----
+  window.CAR_STR = c=>'●'.repeat(c)+'○'.repeat(5-c);
+  window.CAR_LBL = c=>['—','very hard','hard','moderate','easy','very easy'][c]||'—';
+  window.PK_LBL = s=> s>=75?'excellent':s>=60?'good':s>=45?'fair':s>=30?'poor':'very poor';
+  (function overlays(){
+    if(typeof DENSITY==='undefined') return;
+    const grades=[0,1000,2500,5000,7500,10000,15000];
+    const colors=['#fef0d9','#fdd49e','#fdae6b','#fd8d3c','#f16913','#d94801','#8c2d04'];
+    const colFor=d=>{ for(let i=grades.length-1;i>=0;i--){ if(d>=grades[i]) return colors[i]; } return colors[0]; };
+    // parking & access score 0–100 (high = better): red→green
+    const pGrades=[0,25,40,55,70,85];
+    const pColors=['#d73027','#fc8d59','#fee08b','#d9ef8b','#91cf60','#1a9850'];
+    const pColFor=s=>{ for(let i=pGrades.length-1;i>=0;i--){ if(s>=pGrades[i]) return pColors[i]; } return pColors[0]; };
+    // site-opportunity heatmap 0–100 (high = best): YlOrRd (dark red = hottest)
+    const oGrades=[0,20,35,50,65,80];
+    const oColors=['#ffffb2','#fed976','#feb24c','#fd8d3c','#f03b20','#bd0026'];
+    const oColFor=s=>{ for(let i=oGrades.length-1;i>=0;i--){ if(s>=oGrades[i]) return oColors[i]; } return oColors[0]; };
+    const oLbl=s=> s>=65?'prime':s>=50?'strong':s>=35?'moderate':s>=20?'weak':'poor';
+    // commercial-rent estimate DKK/m²/yr (BuPu, dark = pricier)
+    const rGrades=[0,600,800,1200,1800,2200];
+    const rColors=['#edf8fb','#bfd3e6','#9ebcda','#8c96c6','#8856a7','#810f7c'];
+    const rColFor=r=>{ for(let i=rGrades.length-1;i>=0;i--){ if(r>=rGrades[i]) return rColors[i]; } return rColors[0]; };
+    const fmt=n=>n==null?'—':Number(n).toLocaleString('en-GB');
+    const carStr=window.CAR_STR, carLbl=window.CAR_LBL, pkLbl=window.PK_LBL;
+
+    // Kontur hex — population density
+    const hexLayer=L.geoJSON(DENSITY,{ renderer:L.canvas({padding:0.5}),
+      style:f=>({fillColor:colFor(f.properties.d),fillOpacity:.72,stroke:false}),
+      onEachFeature:(f,lyr)=>{ const p=f.properties;
+        lyr.bindTooltip(`<div class="zt-stat"><b>${fmt(p.d)}</b> residents/km²</div>`+
+          `<div class="zt-stat" style="opacity:.7">≈${fmt(p.p)} in this 0.6&nbsp;km² cell</div>`+
+          `<div class="zt-stat">🚗 Car: <b>${carStr(p.c)}</b> ${carLbl(p.c)}</div>`,
+          {sticky:true,className:'pin-tip zone-tip',opacity:1});}
+    });
+    // Kontur hex — parking & access score
+    const parkLayer=L.geoJSON(DENSITY,{ renderer:L.canvas({padding:0.5}),
+      style:f=>({fillColor:pColFor(f.properties.s),fillOpacity:.74,stroke:false}),
+      onEachFeature:(f,lyr)=>{ const p=f.properties;
+        lyr.bindTooltip(`<div class="zt-stat">🅿️ Parking &amp; access: <b>${p.s}</b>/100 (${pkLbl(p.s)})</div>`+
+          `<div class="zt-stat" style="opacity:.7">${fmt(p.d)} residents/km² · 🚗 ${carStr(p.c)}</div>`,
+          {sticky:true,className:'pin-tip zone-tip',opacity:1});}
+    });
+    // Kontur hex — estimated commercial rent (DKK/m²/yr)
+    const rentLayer=L.geoJSON(DENSITY,{ renderer:L.canvas({padding:0.5}),
+      style:f=>({fillColor:rColFor(f.properties.r),fillOpacity:.74,stroke:false}),
+      onEachFeature:(f,lyr)=>{ const p=f.properties;
+        lyr.bindTooltip(`<div class="zt-stat">💰 Est. rent: <b>~${fmt(p.r)}</b> kr/m²/yr</div>`+
+          `<div class="zt-stat" style="opacity:.7">gym-realistic, area estimate · ${fmt(p.d)} residents/km²</div>`,
+          {sticky:true,className:'pin-tip zone-tip',opacity:1});}
+    });
+    // District overlay (bydele + municipalities)
+    const zoneLayer=L.geoJSON(typeof ZONES!=='undefined'?ZONES:{type:'FeatureCollection',features:[]},{
+      style:f=>({fillColor:colFor(f.properties.density),fillOpacity:.58,color:'#23303b',weight:1,opacity:.5}),
+      onEachFeature:(f,lyr)=>{ const p=f.properties;
+        lyr.bindTooltip(`<div class="zt-name">${esc(p.name)} <span class="zt-kind">${esc(p.kind)}</span></div>`+
+          `<div class="zt-stat"><b>${fmt(p.density)}</b> /km² · <b>${fmt(p.pop)}</b> residents</div>`+
+          `<div class="zt-stat">${p.gyms} gym${p.gyms===1?'':'s'}`+(p.per_gym?` · <b>${fmt(p.per_gym)}</b> ppl/gym`:'')+`</div>`+
+          `<div class="zt-stat">🚗 Car: <b>${carStr(p.car)}</b> ${carLbl(p.car)} · 🅿️ ${p.pk}/100</div>`,
+          {sticky:true,className:'pin-tip zone-tip',opacity:1});}
+    });
+    // Kontur hex — site-opportunity heatmap, live-weighted (demand + low competition + transport + parking)
+    const oppW={dem:40,cmp:35,tr:25,pk:0,rent:0};
+    const rentN=r=>Math.max(0,Math.min(100,Math.round((2500-r)/20)));   // cheaper rent → higher score
+    const oppScore=p=>{ const t=oppW.dem+oppW.cmp+oppW.tr+oppW.pk+oppW.rent||1;
+      return Math.round((oppW.dem*p.dem+oppW.cmp*p.cmp+oppW.tr*p.tr+oppW.pk*p.s+oppW.rent*rentN(p.r))/t); };
+    const oppStyle=f=>({fillColor:oColFor(oppScore(f.properties)),fillOpacity:.76,stroke:false});
+    const oppLayer=L.geoJSON(DENSITY,{ renderer:L.canvas({padding:0.5}), style:oppStyle,
+      onEachFeature:(f,lyr)=>{ lyr.bindTooltip(()=>{ const p=f.properties, o=oppScore(p);
+        return `<div class="zt-stat">⭐ Site opportunity: <b>${o}</b>/100 (${oLbl(o)})</div>`+
+          `<div class="zt-stat" style="opacity:.7">demand ${p.dem} · open ${p.cmp} · transit ${p.tr} · parking ${p.s} · low-rent ${rentN(p.r)}</div>`+
+          `<div class="zt-stat" style="opacity:.7">est. rent ~${fmt(p.r)} kr/m²/yr</div>`;},
+        {sticky:true,className:'pin-tip zone-tip',opacity:1});}
+    });
+    let oppRaf=null;
+    function recolorOpp(){ if(map.hasLayer(oppLayer)) oppLayer.setStyle(oppStyle); }
+    function onSlide(){ const ids={dem:'w-dem',cmp:'w-cmp',tr:'w-tr',pk:'w-pk',rent:'w-rent'};
+      for(const k in ids){ const el=document.getElementById(ids[k]); if(el){ oppW[k]=+el.value; const v=document.getElementById('v-'+k); if(v) v.textContent=el.value; } }
+      if(oppRaf) cancelAnimationFrame(oppRaf); oppRaf=requestAnimationFrame(recolorOpp);
+    }
+    ['w-dem','w-cmp','w-tr','w-pk','w-rent'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input',onSlide); });
+    // Transit stations (Metro + S-train)
+    const staLayer=L.layerGroup((typeof STATIONS!=='undefined'?STATIONS:[]).map(s=>{
+      const metro=s.net==='Metro';
+      const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'',html:`<div class="stn ${metro?'metro':'stog'}"></div>`,iconSize:[13,13],iconAnchor:[6.5,6.5]}),zIndexOffset:300,keyboard:false});
+      m.bindTooltip(`<b>${esc(s.n)}</b><br>${metro?'Metro':'S-train'} station`,{direction:'top',offset:[0,-8],className:'pin-tip',opacity:1});
+      return m;
+    }));
+
+    const legend=document.getElementById('legend');
+    function renderLegend(){
+      let h='';
+      if(mode==='hex'||mode==='zone'){ h+='<div class="lg-t">Residents / km²</div>'+grades.map((g,i)=>{
+          const nx=grades[i+1]; return `<div class="lg-row"><i style="background:${colors[i]}"></i>${fmt(g)}${nx?'–'+fmt(nx):'+'}</div>`;}).join('')
+        +'<div class="lg-row" style="margin-top:5px">🚗 = car-access (●○, 1–5)</div>'; }
+      if(mode==='park'){ h+='<div class="lg-t">Parking &amp; access (0–100)</div>'+pGrades.slice().map((g,i)=>{
+          const nx=pGrades[i+1]; return `<div class="lg-row"><i style="background:${pColors[i]}"></i>${g}${nx?'–'+nx:'+'}</div>`;}).reverse().join('')
+        +'<div class="lg-row" style="margin-top:4px;opacity:.75">parking + low traffic + motorway</div>'; }
+      if(mode==='opp'){ h+='<div class="lg-t">Site opportunity (0–100)</div>'+oGrades.slice().map((g,i)=>{
+          const nx=oGrades[i+1]; return `<div class="lg-row"><i style="background:${oColors[i]}"></i>${g}${nx?'–'+nx:'+'}</div>`;}).reverse().join('')
+        +'<div class="lg-row" style="margin-top:4px;opacity:.75">density + low competition + transit</div>'; }
+      if(mode==='rent'){ h+='<div class="lg-t">Est. rent (kr/m²/yr)</div>'+rGrades.slice().map((g,i)=>{
+          const nx=rGrades[i+1]; return `<div class="lg-row"><i style="background:${rColors[i]}"></i>${fmt(g)}${nx?'–'+fmt(nx):'+'}</div>`;}).reverse().join('')
+        +'<div class="lg-row" style="margin-top:4px;opacity:.75">gym-realistic, Colliers/Savills bands</div>'; }
+      if(transit){ h+='<div class="lg-row" style="margin-top:5px"><i style="background:#2d9cdb;border-radius:50%"></i>Metro</div>'
+        +'<div class="lg-row"><i style="background:#e2231a;border-radius:50%"></i>S-train</div>'; }
+      legend.innerHTML=h; const show=!!(mode||transit);
+      legend.style.display=show?'block':'none'; legend.setAttribute('aria-hidden', show?'false':'true');
+    }
+    let mode=null, transit=false;
+    const dBtn=document.getElementById('density-toggle'),
+          zBtn=document.getElementById('districts-toggle'),
+          pBtn=document.getElementById('parking-toggle'),
+          sBtn=document.getElementById('suggest-toggle'),
+          rBtn=document.getElementById('rent-toggle'),
+          tBtn=document.getElementById('transit-toggle');
+    function setMode(m){ mode=(mode===m)?null:m;
+      [hexLayer,zoneLayer,parkLayer,oppLayer,rentLayer].forEach(l=>map.removeLayer(l));
+      if(mode==='hex') hexLayer.addTo(map);
+      if(mode==='zone') zoneLayer.addTo(map);
+      if(mode==='park') parkLayer.addTo(map);
+      if(mode==='opp') oppLayer.addTo(map);
+      if(mode==='rent') rentLayer.addTo(map);
+      if(transit){ map.removeLayer(staLayer); staLayer.addTo(map); }   // keep stations on top
+      dBtn.classList.toggle('on',mode==='hex'); dBtn.setAttribute('aria-pressed',String(mode==='hex'));
+      zBtn.classList.toggle('on',mode==='zone'); zBtn.setAttribute('aria-pressed',String(mode==='zone'));
+      pBtn.classList.toggle('on',mode==='park'); pBtn.setAttribute('aria-pressed',String(mode==='park'));
+      if(sBtn){ sBtn.classList.toggle('on',mode==='opp'); sBtn.setAttribute('aria-pressed',String(mode==='opp')); }
+      if(rBtn){ rBtn.classList.toggle('on',mode==='rent'); rBtn.setAttribute('aria-pressed',String(mode==='rent')); }
+      const sp=document.getElementById('opp-sliders'); if(sp) sp.style.display=(mode==='opp')?'block':'none';
+      renderLegend();
+    }
+    function setTransit(){ transit=!transit;
+      if(transit) staLayer.addTo(map); else map.removeLayer(staLayer);
+      tBtn.classList.toggle('on',transit); tBtn.setAttribute('aria-pressed',String(transit));
+      renderLegend();
+    }
+    dBtn.onclick=()=>setMode('hex');
+    if(zBtn) zBtn.onclick=()=>setMode('zone');
+    if(pBtn) pBtn.onclick=()=>setMode('park');
+    if(sBtn) sBtn.onclick=()=>setMode('opp');
+    if(rBtn) rBtn.onclick=()=>setMode('rent');
+    if(tBtn) tBtn.onclick=setTransit;
+  })();
+
+  // ---- Near me (geolocation): user marker, recenter, distance-sorted tabs + distance in board ----
+  const distKm = (a,b)=>{ const R=6371, toR=x=>x*Math.PI/180;
+    const dLat=toR(b[0]-a[0]), dLng=toR(b[1]-a[1]);
+    const s=Math.sin(dLat/2)**2 + Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s)); };
+  const fmtDist = km => km<1 ? Math.round(km*1000)+' m' : km.toFixed(km<10?1:0)+' km';
+  const nearmeBtn = document.getElementById('nearme');
+  nearmeBtn.onclick = ()=>{
+    if(!navigator.geolocation){ nearmeBtn.textContent='📍 Not supported'; return; }
+    nearmeBtn.textContent='📍 Locating…';
+    navigator.geolocation.getCurrentPosition(pos=>{
+      userLoc=[pos.coords.latitude, pos.coords.longitude];
+      nearmeBtn.textContent='📍 Near me'; nearmeBtn.classList.add('on');
+      if(userMarker) userMarker.setLatLng(userLoc);
+      else userMarker=L.marker(userLoc,{icon:L.divIcon({className:'',html:'<div class="userdot"></div>',iconSize:[16,16],iconAnchor:[8,8]}),interactive:false,keyboard:false,zIndexOffset:1000}).addTo(map);
+      map.setView(userLoc, Math.max(map.getZoom(),13), {animate:true});
+      tabsEl._sig=null;                       // force tab strip to re-sort by distance
+      if(selectedId) openBoard(selectedId, false);
+    }, err=>{
+      nearmeBtn.textContent = err.code===1 ? '📍 Permission denied' : '📍 Unavailable';
+      setTimeout(()=>{ nearmeBtn.textContent='📍 Near me'; }, 2600);
+    }, {enableHighAccuracy:true, timeout:8000, maximumAge:60000});
+  };
 
   const allBounds = L.latLngBounds(GYMS.map(g=>g.coords));
   map.fitBounds(allBounds, {padding:[70,70], maxZoom: CONFIG.fitMaxZoom || CONFIG.zoom || 12});
@@ -305,7 +563,17 @@
   const allItem = document.createElement('button');
   allItem.className = 'sb-all active';
   allItem.innerHTML = '★<span class="alltext"> All gyms</span>';
-  allItem.onclick = ()=>{ exitCompare(); resetToAll(true); };
+  allItem.onclick = ()=>{
+    exitCompare();
+    // if we're already showing the full "all gyms" view, a second press hides every pin
+    if(!brandFilter && !selectedId && !allOff){
+      allOff = true; closeBoard(); setBrandActive(null);
+      allItem.classList.remove('active');
+      setActivePins();
+    } else {
+      resetToAll(true);   // from a brand, a selection, or the hidden state → show all again
+    }
+  };
   listEl.appendChild(allItem);
 
   const headEls = {};
@@ -324,13 +592,14 @@
   function setActivePins(){
     GYMS.forEach(g=>{
       markers[g.id].setIcon(icon(g, g.id===selectedId));
-      markers[g.id].setOpacity(matches(g)?1:0.5);
+      markers[g.id].setOpacity(allOff ? 0 : (matches(g)?1:0.5));
     });
+    applyAllPinA11y();
   }
   function matches(g){ return !brandFilter || brandOf(g)===brandFilter; }
 
   function resetToAll(fly){
-    brandFilter = null; selectedId = null;
+    allOff = false; brandFilter = null; selectedId = null;
     setBrandActive(null); closeBoard();
     setActivePins();
     if(fly) map.flyToBounds(allBounds, {padding:[70,70], maxZoom:10, duration:.6});
@@ -368,12 +637,20 @@
 
   function buildTabs(brand, activeId){
     const group = brandMap[brand] || [];
-    if(group.length < 2){ tabsEl.style.display='none'; tabsEl.innerHTML=''; return; }
     // only show this brand's locations within the current map view (+ the active one)
-    const b = map.getBounds();
-    let inView = group.filter(g => b.contains(g.coords));
-    if(activeId && !inView.some(g=>g.id===activeId)){ const a=group.find(g=>g.id===activeId); if(a) inView=[a].concat(inView); }
-    if(inView.length < 2){ tabsEl.style.display='none'; tabsEl.innerHTML=''; return; }
+    let inView = [];
+    if(group.length >= 2){
+      const b = map.getBounds();
+      inView = group.filter(g => b.contains(g.coords));
+      if(activeId && !inView.some(g=>g.id===activeId)){ const a=group.find(g=>g.id===activeId); if(a) inView=[a].concat(inView); }
+      if(userLoc) inView = inView.slice().sort((a,b)=>distKm(userLoc,a.coords)-distKm(userLoc,b.coords));
+    }
+    const show = inView.length >= 2;
+    // skip the rebuild when nothing changed, so panning doesn't flicker or reset scroll
+    const sig = show ? (brand+'|'+activeId+'|'+inView.map(g=>g.id).join(',')) : 'hidden';
+    if(tabsEl._sig === sig) return;
+    tabsEl._sig = sig;
+    if(!show){ tabsEl.style.display='none'; tabsEl.innerHTML=''; return; }
     tabsEl.innerHTML = '';
     inView.forEach(g=>{
       const t = document.createElement('button');
@@ -409,8 +686,11 @@
     wrap.querySelectorAll('.pgroup').forEach(pg=>{ pg.style.display = pg.getAttribute('data-pg')===key ? '' : 'none'; });
   });
   enableDragScroll(tabsEl);
-  // refresh the tab strip to the viewport as the map pans/zooms
-  map.on('moveend', ()=>{ const bd=document.getElementById('board'); if(bd && bd.classList.contains('open') && selectedId){ const g=GYMS.find(x=>x.id===selectedId); if(g) buildTabs(brandOf(g), selectedId); } });
+  // refresh the tab strip to the viewport as the map pans/zooms (debounced; rebuild only if the set changed)
+  let tabTimer=null;
+  map.on('moveend', ()=>{ clearTimeout(tabTimer); tabTimer=setTimeout(()=>{
+    const bd=document.getElementById('board'); if(bd && bd.classList.contains('open') && selectedId){ const g=GYMS.find(x=>x.id===selectedId); if(g) buildTabs(brandOf(g), selectedId); }
+  }, 140); });
 
   function hoursRows(g){
     if(!DAYS.some(d=>g.hours&&g.hours[d])){
@@ -474,8 +754,15 @@
       html += `<div class="sec"><h4>Classes</h4><div class="tags">${g.classes.map(c=>`<span>${esc(c)}</span>`).join('')}</div></div>`;
     if(g.amenities && g.amenities.length)
       html += `<div class="sec"><h4>Amenities</h4><div class="tags">${g.amenities.map(a=>`<span>${esc(a)}</span>`).join('')}</div></div>`;
+    if(typeof GYM_CAR!=='undefined' && GYM_CAR[g.id]){ const gc=GYM_CAR[g.id];
+      html += `<div class="sec"><h4>Getting there</h4>`+
+        `<div class="row"><span class="k">Car access</span><span class="v" title="Modelled from local population density (congestion/parking proxy)">${window.CAR_STR(gc.car)} ${window.CAR_LBL(gc.car)}</span></div>`+
+        `<div class="row"><span class="k">Parking &amp; access</span><span class="v" title="Parking supply + low traffic + motorway proximity">${gc.pk}/100 (${window.PK_LBL(gc.pk)})</span></div>`+
+        `<div class="row"><span class="k">Nearest rail</span><span class="v">${esc(gc.stnet)} — ${esc(gc.stn)} · ${gc.stkm} km</span></div></div>`;
+    }
     html += `<div class="sec"><h4>Contact</h4>`;
     if(g.address) html += `<div class="row"><span class="k">Address</span><span class="v">${esc(g.address)}</span></div>`;
+    if(userLoc)   html += `<div class="row"><span class="k">Distance</span><span class="v">${esc(fmtDist(distKm(userLoc,g.coords)))} away</span></div>`;
     if(g.phone)   html += `<div class="row"><span class="k">Phone</span><span class="v"><a href="tel:${esc(g.phone.replace(/\s/g,''))}">${esc(g.phone)}</a></span></div>`;
     if(g.email)   html += `<div class="row"><span class="k">Email</span><span class="v"><a href="mailto:${esc(g.email)}">${esc(g.email)}</a></span></div>`;
     if(g.website) html += `<div class="row"><span class="k">Website</span><span class="v"><a href="${esc(g.website)}" target="_blank" rel="noopener">${esc(g.website.replace(/^https?:\/\//,'').replace(/\/$/,''))}</a></span></div>`;
@@ -494,21 +781,30 @@
 
   function openBoard(id, fly){
     const g = GYMS.find(x=>x.id===id); if(!g) return;
+    allOff = false;   // showing a gym always un-hides the pins
     selectedId = id;
     if(fly) map.panTo(g.coords, {animate:true, duration:.5});  // move to the pin, keep current zoom
 
     buildTabs(brandOf(g), id);
     document.getElementById('b-name').textContent = brandOf(g);
-    document.getElementById('b-sub').textContent = `${g.type} · ${g.town}, ${g.island}`;
+    document.getElementById('b-sub').textContent = `${g.type} · ${g.town}`;
 
     const body = document.getElementById('bbody');
     body.innerHTML = detailHtml(g);
     wireScrollers(body);
     body.scrollTop = 0;
+    const wasOpen = board.classList.contains('open');
     board.classList.add('open');
+    board.setAttribute('aria-hidden','false');
+    // remember what to return focus to, and move focus into the dialog on first open
+    if(!wasOpen){ lastFocus = document.activeElement; document.getElementById('bclose').focus(); }
   }
 
-  function closeBoard(){ board.classList.remove('open'); selectedId = null; }
+  function closeBoard(){
+    if(!board.classList.contains('open')) return;
+    board.classList.remove('open'); board.setAttribute('aria-hidden','true'); selectedId = null;
+    if(lastFocus && lastFocus.focus){ try{ lastFocus.focus(); }catch(_){}} lastFocus = null;
+  }
 
   // ---- Inline compare: brand panels anchored right, added via the left nav ----
   // compareList holds brand names; index 0 = the kept panel (stays on the right).
@@ -522,7 +818,7 @@
       ? `<div class="ctabs">${group.map(x=>`<button class="tab${x.id===id?' active':''}" data-tab="${esc(brand)}__${esc(x.id)}">${esc(pillLabel(x))}</button>`).join('')}</div>` : '';
     return `<div class="cpanel">
       <div class="cph"><button class="cpx" data-rm="${esc(brand)}" aria-label="Remove">×</button>
-        <h2>${esc(brand)}</h2><div class="sub">${esc(g.type)} · ${esc(g.town)}, ${esc(g.island)}</div></div>
+        <h2>${esc(brand)}</h2><div class="sub">${esc(g.type)} · ${esc(g.town)}</div></div>
       ${tabs}
       <div class="cpb">${detailHtml(g)}</div></div>`;
   }
@@ -539,6 +835,7 @@
     const set = new Set();
     compareList.forEach(b=>brandMap[b].forEach(x=>set.add(x.id)));
     GYMS.forEach(g=>{ markers[g.id].setIcon(icon(g, set.has(g.id))); markers[g.id].setOpacity(set.size? (set.has(g.id)?1:0.5) : 1); });
+    applyAllPinA11y();
   }
   function enterCompare(brand, locId){
     compareMode = true;

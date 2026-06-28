@@ -18,9 +18,10 @@ the only edition-specific files are `config.js` (map centre, brand colours) and
 > images where available; and a **View on Google** link (reviews/photos/score
 > live on Google — they need the paid Places API to pull in directly).
 >
-> ⚠️ **Offers and prices are time-sensitive** (e.g. the SATS "free until 1 Aug"
-> campaign expires 30 Jun 2026) — refresh `data.js` periodically. All entries are
-> still `verified:false` pending per-location confirmation.
+> ⚠️ **Offers and prices are time-sensitive** — refresh `data.js` periodically.
+> PureGym, LOOP and Beatriders are `verified:true` (≈50 of 89, coords/hours/prices
+> confirmed from source); SATS and FitnessX are `verified:false`, awaiting
+> per-location confirmation of hours and prices.
 
 ## Files
 

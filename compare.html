@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --bg:#fdf6e9; --panel:#fff; --panel-2:#fff8ed; --ink:#23303b; --muted:#6b7b88;
-    --accent:#ff7a59; --accent-2:#19b6c9; --yellow:#ffd23f; --green:#2dc26b; }
+  :root{ --bg:#fdf6e9; --panel:#fff; --panel-2:#fff8ed; --ink:#23303b; --muted:#566570;
+    --accent:#ff7a59; --accent-2:#19b6c9; --yellow:#ffd23f; --green:#0f8a49; }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Fredoka",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);padding:0 0 60px}
   a{color:#0f8d9c;text-decoration:none;font-weight:500}
@@ -43,6 +43,8 @@
   th{font-size:11.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:600;background:#fff;
     position:sticky;top:0;cursor:pointer;white-space:nowrap;user-select:none}
   th .ar{opacity:.5;font-size:10px}
+  th .sortbtn{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-transform:inherit;letter-spacing:inherit;display:inline-flex;align-items:center;gap:4px}
+  th .sortbtn:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:3px}
   tr:last-child td{border-bottom:none}
   tr.cheapest td .mo{color:#13934f}
   .gname{font-weight:600;font-size:15px}
@@ -66,6 +68,7 @@
   <p class="lede" id="lede"></p>
   <div class="filters" id="brandFilters"></div>
   <div class="filters" id="areaFilters"></div>
+  <div class="filters"><button id="nearme" class="chip" type="button">📍 Sort by distance</button></div>
   <div class="count" id="count"></div>
   <div class="tablecard"><div class="scroll"><table>
     <thead><tr id="head"></tr></thead>
@@ -81,14 +84,18 @@
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const brandOf = g => g.name.split(" — ")[0];
   const colorFor = g => (CONFIG.brandColors&&CONFIG.brandColors[brandOf(g)]) || "#ff7a59";
-  const monthlyNum = g => { const m=String(g.priceMonthly||'').match(/(\d[\d.,]*)/); return m?parseInt(m[1].replace(/[.,]/g,''),10):null; };
+  // class-only studios price per class, not per month — exclude from numeric price sort & "cheapest"
+  const monthlyNum = g => { if(g.classOnly) return null; const m=String(g.priceMonthly||'').match(/(\d[\d.,]*)/); return m?parseInt(m[1].replace(/[.,]/g,''),10):null; };
 
   document.getElementById('brandname').innerHTML = '<span class="fo">'+esc((CONFIG.title||'Fit').slice(0,2))+'</span>'+esc((CONFIG.title||'Fit').slice(2));
   document.title = (CONFIG.title||'Fit') + ' — browse & compare';
   document.getElementById('title').textContent = 'Browse & compare — ' + (CONFIG.tagline || '');
   document.getElementById('lede').textContent = GYMS.length + ' locations. Filter by brand or area, sort by any column.';
 
-  let brandF = null, areaF = null, sortKey = 'price', sortDir = 1;
+  let brandF = null, areaF = null, sortKey = 'price', sortDir = 1, userLoc = null;
+  const distKm = (a,b)=>{ const R=6371, toR=x=>x*Math.PI/180; const dLat=toR(b[0]-a[0]), dLng=toR(b[1]-a[1]);
+    const s=Math.sin(dLat/2)**2 + Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(s)); };
+  const fmtDist = km => km<1 ? Math.round(km*1000)+' m' : km.toFixed(km<10?1:0)+' km';
 
   const brands = [...new Set(GYMS.map(brandOf))];
   const areas  = [...new Set(GYMS.map(g=>g.town).filter(Boolean))].sort();
@@ -107,22 +114,25 @@
     b.innerHTML=(dot?`<span class="dot" style="background:${dot}"></span>`:'')+esc(label); return b; }
   function mark(container, el){ [...container.children].forEach(c=>c.classList.toggle('on', c===el)); }
 
-  const cols = [
+  function cols(){ return [
     {k:'name',  t:'Gym'},
     {k:'brand', t:'Brand'},
     {k:'area',  t:'Area'},
     {k:'price', t:'Monthly'},
+    ...(userLoc ? [{k:'dist', t:'Distance'}] : []),
     {k:'am',    t:'Amenities', nosort:true},
     {k:'map',   t:'Map', nosort:true}
-  ];
+  ]; }
   function renderHead(){
-    document.getElementById('head').innerHTML = cols.map(c=>{
-      const arrow = (!c.nosort && c.k===sortKey) ? ` <span class="ar">${sortDir>0?'▲':'▼'}</span>` : '';
-      return `<th data-k="${c.k}" ${c.nosort?'style="cursor:default"':''}>${c.t}${arrow}</th>`;
+    document.getElementById('head').innerHTML = cols().map(c=>{
+      if(c.nosort) return `<th>${esc(c.t)}</th>`;
+      const active = c.k===sortKey;
+      const aria = active ? (sortDir>0?'ascending':'descending') : 'none';
+      const arrow = active ? ` <span class="ar" aria-hidden="true">${sortDir>0?'▲':'▼'}</span>` : '';
+      return `<th aria-sort="${aria}"><button type="button" class="sortbtn" data-k="${c.k}">${esc(c.t)}${arrow}</button></th>`;
     }).join('');
-    document.querySelectorAll('#head th').forEach(th=>{ const k=th.getAttribute('data-k');
-      if(cols.find(c=>c.k===k).nosort) return;
-      th.onclick=()=>{ if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=1;} render(); };
+    document.querySelectorAll('#head .sortbtn').forEach(btn=>{ const k=btn.getAttribute('data-k');
+      btn.onclick=()=>{ if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=1;} render(); };
     });
   }
 
@@ -130,10 +140,10 @@
     renderHead();
     let list = GYMS.filter(g=> (!brandF||brandOf(g)===brandF) && (!areaF||g.town===areaF) );
     const val = (g)=>({ name:g.name.toLowerCase(), brand:brandOf(g).toLowerCase(), area:(g.town||'').toLowerCase(),
-                        price: monthlyNum(g) }[sortKey]);
+                        price: monthlyNum(g), dist: userLoc?distKm(userLoc,g.coords):null }[sortKey]);
     list.sort((a,b)=>{
       let va=val(a), vb=val(b);
-      if(sortKey==='price'){ va=(va==null?Infinity:va); vb=(vb==null?Infinity:vb); return (va-vb)*sortDir; }
+      if(sortKey==='price' || sortKey==='dist'){ va=(va==null?Infinity:va); vb=(vb==null?Infinity:vb); return (va-vb)*sortDir; }
       return String(va).localeCompare(String(vb))*sortDir;
     });
     const nums = list.map(monthlyNum).filter(n=>n!=null);
@@ -146,6 +156,7 @@
         <td><div class="brandcell"><span class="dot" style="background:${colorFor(g)}"></span>${esc(brandOf(g))}</div></td>
         <td>${esc(g.town||'—')}</td>
         <td><span class="mo">${esc(g.priceMonthly||'—')}</span>${cheap?' <span class="pill">cheapest</span>':''}</td>
+        ${userLoc?`<td><span class="mo">${esc(fmtDist(distKm(userLoc,g.coords)))}</span></td>`:''}
         <td><div class="am">${(g.amenities||[]).slice(0,5).map(a=>`<span>${esc(a)}</span>`).join('')}</div></td>
         <td><a class="maplink" href="index.html?focus=${encodeURIComponent(g.id)}">View ↗</a></td>
       </tr>`;
@@ -153,6 +164,21 @@
   }
 
   render();
+
+  // ---- Near me: geolocation → distance column + sort ----
+  const nearmeBtn = document.getElementById('nearme');
+  nearmeBtn.onclick = ()=>{
+    if(!navigator.geolocation){ nearmeBtn.textContent='📍 Not supported'; return; }
+    nearmeBtn.textContent='📍 Locating…';
+    navigator.geolocation.getCurrentPosition(pos=>{
+      userLoc=[pos.coords.latitude, pos.coords.longitude];
+      nearmeBtn.textContent='📍 Nearest first'; nearmeBtn.classList.add('on');
+      sortKey='dist'; sortDir=1; render();
+    }, err=>{
+      nearmeBtn.textContent = err.code===1 ? '📍 Permission denied' : '📍 Unavailable';
+      setTimeout(()=>{ nearmeBtn.textContent='📍 Sort by distance'; }, 2600);
+    }, {enableHighAccuracy:true, timeout:8000, maximumAge:60000});
+  };
 
   if(typeof DATA_UPDATED!=='undefined'){
     const f=new Date(DATA_UPDATED+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});

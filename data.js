@@ -11,14 +11,13 @@ const DATA_UPDATED = "2026-06-27";
 const ISLAND = "Zealand";
 
 /* ---- SATS ---- */
-const SATS_IMG = "https://images.ctfassets.net/bton54gi9dnn/Nt38iQOevNrd9WVF5oBDm/4ff7db719c8770871d1bd904361cce05/2000x907-generic-salesbanner.jpg";
 const SATS_CLASSES = ["Cycling","BodyPump","Yoga","HIIT","Pilates","Zumba","Core","Dance"];
-const SATS_OFFER = "Train free until 1 Aug + free sign-up for new members.";
-const SATS_OFFER_EXP = "2026-06-30";
+const SATS_OFFER = "Free sign-up for new members — see sats.dk for current campaigns.";
+const SATS_OFFER_EXP = "";
 const SATS_SUBS = [{label:"Monthly", value:"from 399 kr/mo"}];
 const sats=(id,label,town,lat,lng,addr,phone)=>({
   id:"sats-"+id, name:"SATS — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
-  address:addr, phone:phone||"", email:"", website:"https://www.sats.dk", facebook:"", photo:SATS_IMG, rating:null,
+  address:addr, phone:phone||"", email:"", website:"https://www.sats.dk", facebook:"", photo:"", rating:null,
   priceMonthly:"From 399 kr/mo", subscriptions:SATS_SUBS, passes:[], courses:[],
   hours:{ Mon:"06:00–22:00",Tue:"06:00–22:00",Wed:"06:00–22:00",Thu:"06:00–22:00",Fri:"06:00–22:00",Sat:"08:00–22:00",Sun:"08:00–22:00", note:"Typical SATS hours — confirm per centre on sats.dk." },
   classes:SATS_CLASSES, amenities:["Cardio","Strength","Classes","Sauna"], offer:SATS_OFFER, offerExpires:SATS_OFFER_EXP, notes:"", verified:false });
@@ -32,7 +31,7 @@ const PG_24 = { Mon:"00:00–24:00",Tue:"00:00–24:00",Wed:"00:00–24:00",Thu:
 const PG_DAY = { Mon:"05:00–00:00",Tue:"05:00–00:00",Wed:"05:00–00:00",Thu:"05:00–00:00",Fri:"05:00–00:00",Sat:"05:00–00:00",Sun:"05:00–00:00", note:"Staffed hours vary." };
 const pg=(id,label,town,lat,lng,addr,hrs,img)=>({
   id:"pg-"+id, name:"PureGym — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
-  address:addr, phone:"", email:"", website:"https://www.puregym.dk/find-center/"+id, facebook:"", photo:img?"https://mit.puregym.dk"+img:"", rating:null,
+  address:addr, phone:"", email:"", website:"https://www.puregym.dk/find-center/"+id, facebook:"", photo:"", rating:null,
   priceMonthly:"From 249 kr/mo", subscriptions:PUREGYM_SUBS, passes:PUREGYM_PASSES, courses:PUREGYM_COURSES,
   hours:hrs, classes:PUREGYM_CLASSES, amenities:["Cardio","Strength","Free weights","Classes"], offer:"", notes:"", verified:true });
 
