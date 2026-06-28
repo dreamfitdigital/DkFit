@@ -10,9 +10,9 @@
 <meta property="og:title" content="DkFit — Copenhagen gym map" />
 <meta property="og:description" content="Find gyms across greater Copenhagen on one map — compare prices, opening hours, classes and contact for SATS, PureGym, LOOP, FitnessX and more." />
 <meta property="og:type" content="website" />
-<meta property="og:image" content="og-cover.png" />
+<meta property="og:image" content="https://dreamfitdigital.github.io/DkFit/og-cover.png" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:image" content="og-cover.png" />
+<meta name="twitter:image" content="https://dreamfitdigital.github.io/DkFit/og-cover.png" />
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -26,7 +26,7 @@
 <style>
   :root{
     --bg:#fdf6e9; --panel:#ffffff; --panel-2:#fff8ed; --ink:#23303b; --muted:#566570;
-    --accent:#ff7a59; --accent-2:#19b6c9; --yellow:#ffd23f; --green:#2dc26b; --pink:#ff6f9c;
+    --accent:#c8442a; --accent-2:#0d7d8c; --yellow:#ffd23f; --green:#2dc26b; --pink:#ff6f9c;
     --r:16px;
   }
   *{box-sizing:border-box}
@@ -117,14 +117,14 @@
     display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.2,.8,.2,1);overflow:hidden}
   .board.open{transform:translateX(0)}
   .board .bh{padding:13px 14px 12px;border-bottom:3px solid var(--ink);background:var(--yellow)}
-  .board .bh-top{display:grid;grid-template-columns:minmax(0,auto) 1fr auto;align-items:center;gap:8px}
+  .board .bh-top{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px}
   .board .bh h2{margin:0;font-size:24px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .board .bh .sub{color:var(--ink);font-size:13px;font-weight:500;margin-top:4px}
   .bclose{justify-self:end;border:3px solid var(--ink);background:#fff;color:var(--ink);
     width:30px;height:30px;border-radius:9px;cursor:pointer;font-size:16px;line-height:1;font-weight:700;box-shadow:2px 2px 0 var(--ink)}
   .bclose:active{transform:translate(2px,2px);box-shadow:none}
-  .bcmp{justify-self:center;border:2.5px solid var(--ink);background:var(--accent-2);color:#fff;white-space:nowrap;
-    padding:7px 16px;border-radius:999px;cursor:pointer;font-size:13.5px;line-height:1;font-weight:600;box-shadow:2px 2px 0 var(--ink);font-family:inherit}
+  .bcmp{justify-self:end;border:2.5px solid var(--ink);background:var(--accent-2);color:#fff;
+    width:34px;height:30px;border-radius:9px;cursor:pointer;font-size:15px;line-height:1;font-weight:700;box-shadow:2px 2px 0 var(--ink);font-family:inherit;display:grid;place-items:center}
   .bcmp:active{transform:translate(2px,2px);box-shadow:none}
   .tabs{display:flex;flex-wrap:nowrap;justify-content:safe center;gap:7px;padding:11px 14px 14px;border-bottom:3px solid var(--ink);background:#fff7ec;overflow-x:auto;scrollbar-width:none;cursor:grab;user-select:none;-webkit-user-select:none}
   .tabs::-webkit-scrollbar{display:none}
@@ -163,6 +163,8 @@
   .ptab{flex:0 0 auto;white-space:nowrap;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:5px 13px;border-radius:999px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
   .ptab.active{background:var(--accent-2);color:#fff}
   .ptab:active{transform:translate(2px,2px);box-shadow:none}
+  .pgsolo-h{font-size:12px;font-weight:700;color:var(--muted);margin:8px 0 5px}
+  .sb-all.allhidden{background:var(--ink);color:#fff;border-style:dashed}
   /* age toggle (30+ / Under 30) */
   .agetabs{display:inline-flex;border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;margin:2px 0 10px;box-shadow:2px 2px 0 var(--ink)}
   .agetab{font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:6px 16px;border:none;background:#fff;color:var(--ink)}
@@ -225,9 +227,9 @@
   .density-toggle{font-family:inherit;font-weight:600;font-size:14px;
     background:#fff;color:var(--ink);border:2.5px solid var(--ink);border-radius:999px;padding:9px 15px;box-shadow:3px 3px 0 var(--ink);cursor:pointer;white-space:nowrap}
   .density-toggle:active{transform:translate(2px,2px);box-shadow:none}
-  .density-toggle.on{background:#fd8d3c;color:#fff}
-  #transit-toggle.on{background:#2d9cdb}
-  #parking-toggle.on{background:#1a9850}
+  .density-toggle.on{background:#c25410;color:#fff}
+  #transit-toggle.on{background:#1f7bb0}
+  #parking-toggle.on{background:#157a40}
   #suggest-toggle.on{background:#bd0026}
   #rent-toggle.on{background:#810f7c}
   .density-toggle:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
@@ -262,6 +264,8 @@
       padding:2px;scrollbar-width:none}
     .map-toggles::-webkit-scrollbar{display:none}
     .map-toggles .density-toggle{flex:0 0 auto}
+    /* when a gym card is open (bottom sheet on mobile), lift the pill row to the top so it stays reachable */
+    body:has(.board.open) .map-toggles{top:12px;bottom:auto}
     /* legend + sliders up at the top-right, out of the pills' way */
     .rpanel{top:12px;bottom:auto;right:10px;gap:8px}
     .legend{width:auto;max-width:54vw} .opp-sliders{width:56vw;max-width:240px}
@@ -307,7 +311,7 @@
   <div class="bh">
     <div class="bh-top">
       <h2 id="b-name"></h2>
-      <button class="bcmp" id="b-compare" title="Compare price &amp; hours">Compare ⚖</button>
+      <button class="bcmp" id="b-compare" title="Compare price &amp; hours" aria-label="Compare price &amp; hours">⚖</button>
       <button class="bclose" id="bclose" aria-label="Close">×</button>
     </div>
     <div class="sub" id="b-sub"></div>
@@ -320,9 +324,14 @@
 
 <script src="config.js"></script>
 <script src="data.js"></script>
-<script src="density.js"></script>
+<script src="gymmeta.js"></script>
+<!-- density.js (hex grid, ~860 KB) is lazy-loaded on first overlay toggle -->
 <script>
 (function(){
+  if(typeof CONFIG==='undefined' || typeof GYMS==='undefined'){
+    document.body.innerHTML='<div style="padding:2rem;font-family:system-ui,sans-serif;color:#23303b">Couldn’t load the map data. Please refresh the page.</div>';
+    return;
+  }
   const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   const todayKey = DAYS[new Date().getDay()];
   let brandFilter = null;
@@ -351,7 +360,7 @@
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   // ---- Branding from CONFIG ----
-  document.title = CONFIG.title + (CONFIG.tagline ? ' — ' + CONFIG.tagline : ' — fitness map');
+  document.title = CONFIG.title + (CONFIG.tagline ? ' — ' + CONFIG.tagline : '') + ' gym map';
   (function(){ const el=document.getElementById('sb-title'); const t=CONFIG.title||'Fit';
     if(el) el.innerHTML = '<span class="fo">'+esc(t.slice(0,2))+'</span>'+esc(t.slice(2)); })();
 
@@ -399,7 +408,26 @@
   window.CAR_STR = c=>'●'.repeat(c)+'○'.repeat(5-c);
   window.CAR_LBL = c=>['—','very hard','hard','moderate','easy','very easy'][c]||'—';
   window.PK_LBL = s=> s>=75?'excellent':s>=60?'good':s>=45?'fair':s>=30?'poor':'very poor';
-  (function overlays(){
+  let setMode=null, setTransit=null, overlaysReady=false, loadingDensity=false, pendingThen=[];
+  function finishInit(){ if(!overlaysReady){ initOverlays(); overlaysReady=true; } const q=pendingThen; pendingThen=[]; q.forEach(f=>f&&f()); }
+  function ensureOverlays(then){
+    if(overlaysReady){ then&&then(); return; }
+    if(then) pendingThen.push(then);
+    if(typeof DENSITY!=='undefined'){ finishInit(); return; }
+    if(loadingDensity) return;
+    loadingDensity=true;
+    const s=document.createElement('script'); s.src='density.js';
+    s.onload=finishInit; s.onerror=()=>{ loadingDensity=false; console.warn('density.js failed to load'); };
+    document.head.appendChild(s);
+  }
+  function bootToggle(id, fn){ const b=document.getElementById(id); if(b) b.addEventListener('click', ()=>ensureOverlays(fn)); }
+  bootToggle('density-toggle', ()=>setMode('hex'));
+  bootToggle('districts-toggle', ()=>setMode('zone'));
+  bootToggle('parking-toggle', ()=>setMode('park'));
+  bootToggle('suggest-toggle', ()=>setMode('opp'));
+  bootToggle('rent-toggle', ()=>setMode('rent'));
+  bootToggle('transit-toggle', ()=>setTransit&&setTransit());
+  function initOverlays(){
     if(typeof DENSITY==='undefined') return;
     const grades=[0,1000,2500,5000,7500,10000,15000];
     const colors=['#fef0d9','#fdd49e','#fdae6b','#fd8d3c','#f16913','#d94801','#8c2d04'];
@@ -487,8 +515,9 @@
     }));
 
     const legend=document.getElementById('legend');
+    let legendHidden=false;
     legend.style.cursor='pointer'; legend.title='Tap to hide';
-    legend.addEventListener('click',()=>{ legend.style.display='none'; });
+    legend.addEventListener('click',()=>{ legendHidden=true; legend.style.display='none'; });
     function renderLegend(){
       let h='';
       if(mode==='hex'||mode==='zone'){ h+='<div class="lg-t">Residents / km²</div>'+grades.map((g,i)=>{
@@ -505,7 +534,7 @@
         +'<div class="lg-row" style="margin-top:4px;opacity:.75">gym-realistic, Colliers/Savills bands</div>'; }
       if(transit){ h+='<div class="lg-row" style="margin-top:5px"><i style="background:#2d9cdb;border-radius:50%"></i>Metro</div>'
         +'<div class="lg-row"><i style="background:#e2231a;border-radius:50%"></i>S-train</div>'; }
-      legend.innerHTML=h; const show=!!(mode||transit);
+      legend.innerHTML=h; const show=!!(mode||transit) && !legendHidden;
       legend.style.display=show?'block':'none'; legend.setAttribute('aria-hidden', show?'false':'true');
     }
     let mode=null, transit=false;
@@ -515,7 +544,7 @@
           sBtn=document.getElementById('suggest-toggle'),
           rBtn=document.getElementById('rent-toggle'),
           tBtn=document.getElementById('transit-toggle');
-    function setMode(m){ mode=(mode===m)?null:m;
+    setMode = function(m){ mode=(mode===m)?null:m; legendHidden=false;
       [hexLayer,zoneLayer,parkLayer,oppLayer,rentLayer].forEach(l=>map.removeLayer(l));
       if(mode==='hex') hexLayer.addTo(map);
       if(mode==='zone') zoneLayer.addTo(map);
@@ -531,18 +560,12 @@
       const sp=document.getElementById('opp-sliders'); if(sp) sp.style.display=(mode==='opp')?'block':'none';
       renderLegend();
     }
-    function setTransit(){ transit=!transit;
+    setTransit = function(){ transit=!transit; legendHidden=false;
       if(transit) staLayer.addTo(map); else map.removeLayer(staLayer);
       tBtn.classList.toggle('on',transit); tBtn.setAttribute('aria-pressed',String(transit));
       renderLegend();
     }
-    dBtn.onclick=()=>setMode('hex');
-    if(zBtn) zBtn.onclick=()=>setMode('zone');
-    if(pBtn) pBtn.onclick=()=>setMode('park');
-    if(sBtn) sBtn.onclick=()=>setMode('opp');
-    if(rBtn) rBtn.onclick=()=>setMode('rent');
-    if(tBtn) tBtn.onclick=setTransit;
-  })();
+  }
 
   // ---- Near me (geolocation): user marker, recenter, distance-sorted tabs + distance in board ----
   const distKm = (a,b)=>{ const R=6371, toR=x=>x*Math.PI/180;
@@ -586,7 +609,8 @@
     // if we're already showing the full "all gyms" view, a second press hides every pin
     if(!brandFilter && !selectedId && !allOff){
       allOff = true; closeBoard(); setBrandActive(null);
-      allItem.classList.remove('active');
+      allItem.classList.remove('active'); allItem.classList.add('allhidden');
+      allItem.innerHTML = '◎<span class="alltext"> Pins hidden — tap to show</span>';
       setActivePins();
     } else {
       resetToAll(true);   // from a brand, a selection, or the hidden state → show all again
@@ -607,11 +631,17 @@
     allItem.classList.toggle('active', !b);
     Object.entries(headEls).forEach(([k,e])=>e.classList.toggle('active', k===b));
   }
+  let lastSelected=null;
   function setActivePins(){
-    GYMS.forEach(g=>{
-      markers[g.id].setIcon(icon(g, g.id===selectedId));
-      markers[g.id].setOpacity(allOff ? 0 : (matches(g)?1:0.3));
-    });
+    // only rebuild the icon DOM for the markers whose selected state changed (setIcon is the costly part)
+    if(lastSelected!==selectedId){
+      const prev = lastSelected && GYMS.find(x=>x.id===lastSelected);
+      const cur  = selectedId && GYMS.find(x=>x.id===selectedId);
+      if(prev) markers[prev.id].setIcon(icon(prev,false));
+      if(cur)  markers[cur.id].setIcon(icon(cur,true));
+      lastSelected = selectedId;
+    }
+    GYMS.forEach(g=>{ markers[g.id].setOpacity(allOff ? 0 : (matches(g)?1:0.3)); });   // opacity is cheap, no DOM rebuild
     applyAllPinA11y();
   }
   function matches(g){ return !brandFilter || brandOf(g)===brandFilter; }
@@ -619,9 +649,12 @@
   function resetToAll(fly){
     allOff = false; brandFilter = null; selectedId = null;
     setBrandActive(null); closeBoard();
+    allItem.classList.remove('allhidden'); allItem.innerHTML = '★<span class="alltext"> All gyms</span>';
     setActivePins();
     if(fly) map.flyToBounds(allBounds, {padding:[70,70], maxZoom:10, duration:.6});
   }
+  // Dismiss the detail card: keep an active brand filter (just close the card); full reset only if nothing is filtered.
+  function dismissBoard(){ if(brandFilter){ closeBoard(); setActivePins(); } else resetToAll(); }
   function selectBrand(b){
     brandFilter = b; setBrandActive(b);
     openBoard(brandMap[b][0].id, false);   // detail with location tabs
@@ -649,7 +682,9 @@
   // ---- Detail board ----
   const board = document.getElementById('board');
   const tabsEl = document.getElementById('b-tabs');
-  document.getElementById('bclose').onclick = ()=>resetToAll();
+  // non-modal side panel: no background inert / focus trap (the map + sidebar stay usable while a card is open)
+  function setBgInert(){}
+  document.getElementById('bclose').onclick = ()=>dismissBoard();
   document.getElementById('b-compare').onclick = ()=>{ if(selectedId){ const g=GYMS.find(x=>x.id===selectedId); enterCompare(brandOf(g), selectedId); } };
 
   function buildTabs(brand, activeId){
@@ -754,7 +789,7 @@
         {key:'courses', label:'Courses',       arr:g.courses||[]}
       ].filter(gr=>gr.arr.length);
       if(!groups.length) return '';
-      if(groups.length === 1) return rows(groups[0].arr);
+      if(groups.length === 1){ const gr=groups[0]; return `<div class="pgsolo-h">${esc(gr.label)}</div>`+rows(gr.arr); }
       const tabs = `<div class="ptabs">${groups.map((gr,i)=>`<button class="ptab${i===0?' active':''}" data-pg="${gr.key}">${esc(gr.label)}</button>`).join('')}</div>`;
       const bodies = groups.map((gr,i)=>`<div class="pgroup" data-pg="${gr.key}"${i===0?'':' style="display:none"'}>${rows(gr.arr)}</div>`).join('');
       return `<div class="pricewrap">${tabs}${bodies}</div>`;
@@ -770,14 +805,13 @@
   }
   function offerHtml(g){
     if(!g.offer) return '';
-    let tag='', cls='offer';
     if(g.offerExpires){
       const days = Math.ceil((new Date(g.offerExpires+'T23:59:59') - new Date())/86400000);
-      if(days < 0){ cls='offer expired'; tag=' · expired '+fmtDate(g.offerExpires); }
-      else if(days === 0){ tag=' · ends today'; }
-      else { tag=' · '+days+' day'+(days>1?'s':'')+' left'; }
+      if(days < 0) return `<div class="offer expired"><span>🎁</span><span>Previous offer (expired ${esc(fmtDate(g.offerExpires))})</span></div>`;
+      const tag = days===0 ? ' · ends today' : ' · '+days+' day'+(days>1?'s':'')+' left';
+      return `<div class="offer"><span>🎁</span><span>${esc(g.offer)}<span class="offer-when">${esc(tag)}</span></span></div>`;
     }
-    return `<div class="${cls}"><span>🎁</span><span>${esc(g.offer)}<span class="offer-when">${esc(tag)}</span></span></div>`;
+    return `<div class="offer"><span>🎁</span><span>${esc(g.offer)}</span></div>`;
   }
   function detailHtml(g){
     let html = '';
@@ -831,6 +865,7 @@
     const wasOpen = board.classList.contains('open');
     board.classList.add('open');
     board.setAttribute('aria-hidden','false');
+    setBgInert(true);
     // remember what to return focus to, and move focus into the dialog on first open
     if(!wasOpen){ lastFocus = document.activeElement; document.getElementById('bclose').focus(); }
   }
@@ -838,6 +873,7 @@
   function closeBoard(){
     if(!board.classList.contains('open')) return;
     board.classList.remove('open'); board.setAttribute('aria-hidden','true'); selectedId = null;
+    setBgInert(false);
     if(lastFocus && lastFocus.focus){ try{ lastFocus.focus(); }catch(_){}} lastFocus = null;
   }
 
@@ -903,7 +939,7 @@
   document.addEventListener('keydown', e=>{
     if(e.key!=='Escape') return;
     if(compareMode) exitCompare();
-    else if(board.classList.contains('open')) resetToAll();
+    else if(board.classList.contains('open')) dismissBoard();
   });
 
   // initial state
@@ -911,7 +947,10 @@
 
   // Deep-link: open a location if ?focus=<id>
   const fid = new URLSearchParams(location.search).get('focus');
-  if(fid && GYMS.some(g=>g.id===fid)) setTimeout(()=>selectLocation(fid), 400);
+  if(fid && GYMS.some(g=>g.id===fid)){
+    let done=false; const go=()=>{ if(done) return; done=true; selectLocation(fid); };
+    map.once('moveend', go); setTimeout(go, 700);   // run after the initial fitBounds settles (fallback if no move)
+  }
 })();
 </script>
 </body>

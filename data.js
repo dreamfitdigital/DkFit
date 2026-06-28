@@ -14,13 +14,14 @@ const ISLAND = "Zealand";
 const SATS_CLASSES = ["Cycling","BodyPump","Yoga","HIIT","Pilates","Zumba","Core","Dance"];
 const SATS_OFFER = "Campaign (new members): 0 kr until 1 Aug 2026 + free sign-up; then normal price. 20% off with valid student/youth/senior doc.";
 const SATS_OFFER_EXP = "2026-08-01";
-const SATS_SUBS = [{label:"Basic · home centre", value:"549 kr/mo"},{label:"Flexible · all DK centres", value:"599 kr/mo"},{label:"Premium · all Nordic centres", value:"699 kr/mo"},{label:"Students / under-25 / seniors", value:"−20%"}];
+const SATS_SUBS = [{label:"Basic · home centre", value:"649 kr/mo"},{label:"Flexible · all DK centres", value:"699 kr/mo"},{label:"Premium · all Nordic centres", value:"799 kr/mo"},{label:"Students / under-25 / seniors", value:"−20%"}];
+const SATS_SUBS_U30 = [{label:"Basic · home centre", value:"549 kr/mo"},{label:"Flexible · all DK centres", value:"599 kr/mo"},{label:"Premium · all Nordic centres", value:"699 kr/mo"},{label:"Students / under-25 / seniors", value:"−20%"}];
 const sats=(id,label,town,lat,lng,addr,phone)=>({
   id:"sats-"+id, name:"SATS — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:phone||"", email:"", website:"https://www.sats.dk", facebook:"", photo:"", rating:null,
-  priceMonthly:"From 549 kr/mo", subscriptions:SATS_SUBS, passes:[], courses:[],
+  priceMonthly:"From 549 kr/mo (u30) · 649 (30+)", priceM:649, subscriptions:SATS_SUBS, subsU30:SATS_SUBS_U30, passes:[], courses:[],
   hours:{ Mon:"06:00–22:00",Tue:"06:00–22:00",Wed:"06:00–22:00",Thu:"06:00–22:00",Fri:"06:00–22:00",Sat:"08:00–22:00",Sun:"08:00–22:00", note:"Typical SATS hours — confirm per centre on sats.dk." },
-  classes:SATS_CLASSES, amenities:["Cardio","Strength","Classes","Sauna"], offer:SATS_OFFER, offerExpires:SATS_OFFER_EXP, notes:"Same price under/over 30 (the age selector is for VAT only). 20% off with valid student/youth/senior doc. Sign-up fee (oprettelse) normally applies — waived in the current campaign.", verified:false });
+  classes:SATS_CLASSES, amenities:["Cardio","Strength","Classes","Sauna"], offer:SATS_OFFER, offerExpires:SATS_OFFER_EXP, notes:"Under-30 is ~100 kr/mo cheaper than 30+. 20% off with valid student/youth/senior doc. Sign-up fee (oprettelse) normally applies — waived in the current campaign.", verified:false });
 
 /* ---- PureGym ---- */
 const PUREGYM_CLASSES = ["Yoga","Zumba","Pilates","Step","Dance","BodyCombat","Circuit","Boxing","Cardio"];
@@ -37,32 +38,33 @@ const PG_DAY = { Mon:"05:00–00:00",Tue:"05:00–00:00",Wed:"05:00–00:00",Thu
 const pg=(id,label,town,lat,lng,addr,hrs,img)=>({
   id:"pg-"+id, name:"PureGym — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:"", email:"", website:"https://www.puregym.dk/find-center/"+id, facebook:"", photo:"", rating:null,
-  priceMonthly:"From 299 kr/mo (u30) · 379 (30+)", subscriptions:PUREGYM_SUBS, subsU30:PUREGYM_SUBS_U30, passes:PUREGYM_PASSES, courses:PUREGYM_COURSES,
+  priceMonthly:"From 299 kr/mo (u30) · 379 (30+)", priceM:379, subscriptions:PUREGYM_SUBS, subsU30:PUREGYM_SUBS_U30, passes:PUREGYM_PASSES, courses:PUREGYM_COURSES,
   hours:hrs, classes:PUREGYM_CLASSES, amenities:["Cardio","Strength","Free weights","Classes"], offer:PUREGYM_OFFER, offerExpires:PUREGYM_OFFER_EXP, notes:"", verified:true });
 
 /* ---- LOOP ---- */
-const LOOP_SUBS = [{label:"Monthly (per 30 days)", value:"269 kr"},{label:"Student · under 25", value:"229 kr"},{label:"Admin fee", value:"+10 kr/mo"}];
-const LOOP_OFFER = "Intro offer: 100 kr/mo until 12 Aug.";
+const LOOP_SUBS = [{label:"Adult (per 30 days)", value:"289 kr"},{label:"Family (2+ household)", value:"589 kr"},{label:"Kids (7–12)", value:"149 kr"},{label:"Student / senior / association −15%", value:"229 kr"},{label:"Admin fee", value:"+10 kr/30 days"}];
+const LOOP_PASSES = [{label:"1 day", value:"75 kr"},{label:"3 days", value:"99 kr"},{label:"1 week", value:"129 kr"},{label:"2 weeks", value:"179 kr"},{label:"4 weeks", value:"349 kr"}];
+const LOOP_OFFER = "Intro: 100 kr/30 days + free sign-up until 12 Aug 2026 (normal 289 kr). 15% off for students, seniors & association members (oprettelse 199 kr).";
 const LOOP_OFFER_EXP = "2026-08-12";
 const loop=(id,label,town,lat,lng,addr,phone,email)=>({
   id:"loop-"+id, name:"LOOP Fitness — "+label, type:"Circuit gym", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:phone||"", email:email||"", website:"https://loopfitness.dk/centre/loop-fitness-"+id+"/", facebook:"", photo:"", rating:null,
-  priceMonthly:"269 kr/mo", subscriptions:LOOP_SUBS, passes:[], courses:[],
+  priceMonthly:"289 kr/mo (adult)", priceM:289, subscriptions:LOOP_SUBS, passes:LOOP_PASSES, courses:[],
   hours:{ Mon:"05:00–22:00",Tue:"05:00–22:00",Wed:"05:00–22:00",Thu:"05:00–22:00",Fri:"05:00–22:00",Sat:"05:00–22:00",Sun:"05:00–22:00", note:"Staffed hours vary." }, classes:[], amenities:["Circuit training","Coffee/tea"],
   offer:LOOP_OFFER, offerExpires:LOOP_OFFER_EXP, notes:"24-minute, 16-station circuit concept.", verified:true });
 
 /* ---- FitnessX (budget 24h-ish chain; membership incl. all classes, no binding) ---- */
 const FX_CLASSES = ["Cycling/Spinning","Yoga","Zumba","HIIT","Bootcamp","Body toning","Dance"];
 const FX_SUBS_U30 = [{label:"27 centres", value:"360 kr/mo"},{label:"All 31 centres", value:"400 kr/mo"},{label:"Træningsven · train 2", value:"280 / 300 kr/mo pr. person"},{label:"Admin fee", value:"+15 kr/mo"}];
-const FX_SUBS = [{label:"Membership (30+)", value:"higher than under-30 — see fitnessx.dk"},{label:"Admin fee", value:"+15 kr/mo"}];
-const FX_OFFER = "Youth discount: lower price until you turn 30. Spar 50% the first 2 months. Træningsven = bring a buddy (cheaper per person). 30+ prices are higher — see fitnessx.dk.";
+const FX_SUBS = [{label:"27 centres", value:"400 kr/mo"},{label:"All 31 centres", value:"450 kr/mo"},{label:"Admin fee", value:"+15 kr/mo"}];
+const FX_OFFER = "Under-30 is cheaper than 30+. Spar 50% the first 2 months. Træningsven = bring a buddy (cheaper per person).";
 const FX_OFFER_EXP = "";
 const FX_PASSES = [{label:"Day pass (drop-in)", value:"75 kr"}];
 const FX_HOURS = { Mon:"05:00–22:00",Tue:"05:00–22:00",Wed:"05:00–22:00",Thu:"05:00–22:00",Fri:"05:00–22:00",Sat:"07:00–22:00",Sun:"07:00–22:00", note:"Typical FitnessX access hours; staffed hours shorter — confirm per centre on fitnessx.dk." };
 const fx=(id,label,town,lat,lng,addr,path)=>({
   id:"fx-"+id, name:"FitnessX — "+label, type:"Gym & fitness centre", town, island:ISLAND, coords:[lat,lng],
   address:addr, phone:"", email:"", website:"https://fitnessx.dk"+path, facebook:"", photo:"", rating:null,
-  priceMonthly:"From 360 kr/mo (under 30)", subscriptions:FX_SUBS, subsU30:FX_SUBS_U30, passes:FX_PASSES, courses:[],
+  priceMonthly:"From 360 kr/mo (u30) · 400 (30+)", priceM:400, subscriptions:FX_SUBS, subsU30:FX_SUBS_U30, passes:FX_PASSES, courses:[],
   hours:FX_HOURS, classes:FX_CLASSES, amenities:["Cardio","Strength","Classes","No binding"],
   offer:FX_OFFER, offerExpires:FX_OFFER_EXP, notes:"Budget chain — membership includes all classes, no binding (cancel month + 1).", verified:false });
 
@@ -94,7 +96,7 @@ const GYMS = [
   sats("soborg","Søborg","Søborg",55.741109,12.484902,"Tobaksvejen 4, 2860 Søborg",""),
   sats("taastrup","Taastrup","Taastrup",55.643889,12.274546,"Cityringen 24, 2630 Taastrup",""),
   sats("valby","Valby","Valby",55.664755,12.511476,"Torvegade 17, 2500 Valby",""),
-  sats("vallensbaek","Vallensbæk","Vallensbæk",55.621,12.376,"Stationstorvet 76, 2665 Vallensbæk Strand",""),
+  sats("vallensbaek","Vallensbæk","Vallensbæk",55.620600,12.363900,"Stationstorvet 76, 2665 Vallensbæk Strand",""),
   sats("vesterport","Vesterport","Indre By",55.675491,12.563123,"Ved Vesterport 1, 1612 København V",""),
 
   /* ---------------- PureGym (27, verified from puregym.dk) ---------------- */
@@ -144,7 +146,7 @@ const GYMS = [
   loop("sydhavns-plads","Sydhavns Plads","Sydhavn",55.653824,12.54113,"Sydhavns Plads 12, 2450 København SV","+45 3143 8010","sydhavnsplads@loopfitness.dk"),
   loop("valby","Valby","Valby",55.665921,12.517374,"Toftegårds Allé 9A, 2500 Valby","+45 4174 6328","valby@loopfitness.dk"),
   loop("hvidovre","Hvidovre","Hvidovre",55.635881,12.467132,"Arnold Nielsens Boulevard 144, 2650 Hvidovre","+45 4174 6331","hvidovre@loopfitness.dk"),
-  loop("amager-strandlodsvej","Strandlodsvej","Amager",55.667,12.609,"Strandlodsvej 9, 2300 København S","+45 4174 6135","strandlodsvej@loopfitness.dk"),
+  loop("amager-strandlodsvej","Strandlodsvej","Amager",55.667200,12.604200,"Strandlodsvej 9, 2300 København S","+45 4174 6135","strandlodsvej@loopfitness.dk"),
   loop("frederiksberg","Frederiksberg","Frederiksberg",55.683803,12.524073,"Nordre Fasanvej 43, 2000 Frederiksberg","+45 4174 6319","frederiksberg@loopfitness.dk"),
   loop("roedovre","Rødovre","Rødovre",55.677828,12.459137,"Højnæsvej 73, 2610 Rødovre","+45 4174 6216","roedovre@loopfitness.dk"),
   loop("hilleroed","Hillerød","Hillerød",55.932016,12.269295,"Vølundsvej 9, 3400 Hillerød","+45 4174 6226","hilleroed@loopfitness.dk"),
@@ -153,12 +155,12 @@ const GYMS = [
   /* ---------------- FitnessX (10, greater Copenhagen) ---------------- */
   fx("ballerup","Hedeparken","Ballerup",55.718931,12.357145,"Hedeparken, 2750 Ballerup","/fitness/fitness-ballerup/fitness-ballerup-hedeparken/"),
   fx("frederiksberg-fasanvej","Fasanvej","Frederiksberg",55.681998,12.52262,"Nordre Fasanvej 27, 2000 Frederiksberg","/fitness/fitness-frederiksberg/fitness-frederiksberg-nordre-fasanvej-27/"),
-  fx("amager-strand","Amager Strand","København S",55.660103,12.633066,"Amager Strandvej 112A, 2300 København S","/fitness/fitness-koebenhavn/fitness-kobenhavn-s-amager-strandvej-112a/"),
+  fx("amager-strand","Amager Strand","Amager",55.660103,12.633066,"Amager Strandvej 112A, 2300 København S","/fitness/fitness-koebenhavn/fitness-kobenhavn-s-amager-strandvej-112a/"),
   fx("femoeren","Femøren","København S",55.645914,12.636139,"Engvej 163, 2300 København S","/fitness/fitness-koebenhavn/fitness-kobenhavn-s-femoren-engvej-163/"),
   fx("carlsberg-byen","Carlsberg Byen","København V",55.666662,12.533254,"Torvald Bindesbølls Plads 1, 1799 København V","/fitness/fitness-koebenhavn/fitness-kobenhavn-v-carlsberg-byen-torvald-bindesboells-pl-1/"),
   fx("lyngby","Jernbanepladsen","Kgs. Lyngby",55.767952,12.504715,"Jernbanepladsen, 2800 Kongens Lyngby","/fitness/fitness-lyngby/lyngby-jernbanepladsen/"),
   fx("roskilde","Holbækvej","Roskilde",55.635798,12.052578,"Holbækvej, 4000 Roskilde","/fitness/fitness-roskilde/fitness-roskilde-holbaekvej/"),
-  fx("valby-vigerslevvej","Vigerslevvej","Valby",55.66707,12.486413,"Vigerslevvej, 2500 Valby","/fitness/fitness-valby/fitness-valby-centerparken-24/"),
+  fx("valby-vigerslevvej","Vigerslevvej","Valby",55.66707,12.486413,"Vigerslevvej, 2500 Valby","/fitness/fitness-valby/fitness-valby-vigerslevvej/"),
   fx("valby-groenttorvet","Grønttorvet","Valby",55.65787,12.513752,"Gammel Køge Landevej (Grønttorvet), 2500 Valby","/fitness/fitness-valby/fitness-valby-groenttorvet-gammel-koege-landevej/"),
   fx("hans-knudsens-plads","Hans Knudsens Plads","København Ø",55.713947,12.560049,"Hans Knudsens Plads, 2100 København Ø","/fitness/fitness-koebenhavn/fitness-koebenhavn-oe-hans-knudsens-plads/"),
 

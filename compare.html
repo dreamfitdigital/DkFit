@@ -84,8 +84,9 @@
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const brandOf = g => g.name.split(" — ")[0];
   const colorFor = g => (CONFIG.brandColors&&CONFIG.brandColors[brandOf(g)]) || "#ff7a59";
-  // class-only studios price per class, not per month — exclude from numeric price sort & "cheapest"
-  const monthlyNum = g => { if(g.classOnly) return null; const m=String(g.priceMonthly||'').match(/(\d[\d.,]*)/); return m?parseInt(m[1].replace(/[.,]/g,''),10):null; };
+  // Use the explicit numeric priceM (consistent 30+/adult monthly basis) so the sort & "cheapest"
+  // badge compare like-for-like; class-only studios (price per class) are excluded.
+  const monthlyNum = g => (g.classOnly || typeof g.priceM!=='number') ? null : g.priceM;
 
   document.getElementById('brandname').innerHTML = '<span class="fo">'+esc((CONFIG.title||'Fit').slice(0,2))+'</span>'+esc((CONFIG.title||'Fit').slice(2));
   document.title = (CONFIG.title||'Fit') + ' — browse & compare';
