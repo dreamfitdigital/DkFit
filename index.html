@@ -250,8 +250,13 @@
   .legend .lg-row i{width:16px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(35,48,59,.4)}
   .legend .lg-row i.lg-star{background:#1f6dff;color:#fff;border:none;text-align:center;font-size:10px;line-height:14px}
   @media (max-width:720px){
-    /* pills stacked at the bottom on mobile */
-    .map-toggles{top:auto;bottom:12px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 16px);gap:6px}
+    /* pills in one horizontal row at the bottom on mobile, scroll sideways */
+    .map-toggles{top:auto;bottom:12px;left:50%;transform:translateX(-50%);
+      flex-direction:row;flex-wrap:nowrap;align-items:center;gap:6px;
+      max-width:calc(100vw - 16px);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+      padding:2px;scrollbar-width:none}
+    .map-toggles::-webkit-scrollbar{display:none}
+    .map-toggles .density-toggle{flex:0 0 auto}
     /* legend + sliders up at the top-right, out of the pills' way */
     .rpanel{top:12px;bottom:auto;right:10px;gap:8px}
     .legend{width:auto;max-width:54vw} .opp-sliders{width:56vw;max-width:240px}
@@ -383,7 +388,7 @@
     m.on('click', ()=>actGym(g));
     markers[g.id] = m;
   });
-  map.on('click', ()=>{ if(compareMode) exitCompare(); else resetToAll(); });
+  map.on('click', ()=>{ if(compareMode) exitCompare(); else if(!allOff) resetToAll(); });
 
   // ---- Data overlays: density (hex), districts, parking&access, transit ----
   window.CAR_STR = c=>'●'.repeat(c)+'○'.repeat(5-c);
@@ -453,9 +458,12 @@
     const oppStyle=f=>({fillColor:oColFor(oppScore(f.properties)),fillOpacity:.76,stroke:false});
     const oppLayer=L.geoJSON(DENSITY,{ renderer:L.canvas({padding:0.5}), style:oppStyle,
       onEachFeature:(f,lyr)=>{ lyr.bindTooltip(()=>{ const p=f.properties, o=oppScore(p);
+        const T=oppW.dem+oppW.cmp+oppW.tr+oppW.pk+oppW.rent||1;
+        const parts=[['Population',oppW.dem,p.dem],['Low competition',oppW.cmp,p.cmp],['Transport',oppW.tr,p.tr],['Parking',oppW.pk,p.s],['Low rent',oppW.rent,rentN(p.r)]];
+        const rows=parts.filter(x=>x[1]>0).map(x=>`<div class="zt-stat" style="opacity:.85">${x[0]}: <b>+${Math.round(x[1]*x[2]/T)}</b> <span style="opacity:.6">(${x[2]}/100 · w${x[1]})</span></div>`).join('');
         return `<div class="zt-stat">⭐ Site opportunity: <b>${o}</b>/100 (${oLbl(o)})</div>`+
-          `<div class="zt-stat" style="opacity:.7">demand ${p.dem} · open ${p.cmp} · transit ${p.tr} · parking ${p.s} · low-rent ${rentN(p.r)}</div>`+
-          `<div class="zt-stat" style="opacity:.7">est. rent ~${fmt(p.r)} kr/m²/yr</div>`;},
+          (rows||`<div class="zt-stat" style="opacity:.7">set weights with the sliders</div>`)+
+          `<div class="zt-stat" style="opacity:.6;margin-top:2px">${p.n1} gym${p.n1===1?'':'s'} within 1 km · est. rent ~${fmt(p.r)} kr/m²/yr</div>`;},
         {sticky:true,className:'pin-tip zone-tip',opacity:1});}
     });
     let oppRaf=null;
