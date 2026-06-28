@@ -43,7 +43,7 @@
   .leaflet-marker-icon:focus{outline:none}
   .leaflet-marker-icon:focus-visible{outline:3px solid var(--accent-2);outline-offset:3px;border-radius:8px}
   /* ---------- Near-me control + user marker ---------- */
-  .nearme{position:fixed;z-index:600;right:14px;bottom:24px;font-family:inherit;font-weight:600;font-size:14px;
+  .nearme{display:none !important;position:fixed;z-index:600;right:14px;bottom:24px;font-family:inherit;font-weight:600;font-size:14px;
     background:var(--accent-2);color:#fff;border:2.5px solid var(--ink);border-radius:999px;padding:9px 15px;box-shadow:3px 3px 0 var(--ink);cursor:pointer}
   .nearme:active{transform:translate(2px,2px);box-shadow:none}
   .nearme.on{background:#fff;color:var(--ink)}
@@ -250,8 +250,11 @@
   .legend .lg-row i{width:16px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(35,48,59,.4)}
   .legend .lg-row i.lg-star{background:#1f6dff;color:#fff;border:none;text-align:center;font-size:10px;line-height:14px}
   @media (max-width:720px){
-    .rpanel{top:auto;bottom:80px;right:10px;gap:8px}
-    .legend{width:auto;max-width:54vw} .opp-sliders{width:54vw;max-width:240px}
+    /* pills stacked at the bottom on mobile */
+    .map-toggles{top:auto;bottom:12px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 16px);gap:6px}
+    /* legend + sliders up at the top-right, out of the pills' way */
+    .rpanel{top:12px;bottom:auto;right:10px;gap:8px}
+    .legend{width:auto;max-width:54vw} .opp-sliders{width:56vw;max-width:240px}
   }
 </style>
 </head>
@@ -471,6 +474,8 @@
     }));
 
     const legend=document.getElementById('legend');
+    legend.style.cursor='pointer'; legend.title='Tap to hide';
+    legend.addEventListener('click',()=>{ legend.style.display='none'; });
     function renderLegend(){
       let h='';
       if(mode==='hex'||mode==='zone'){ h+='<div class="lg-t">Residents / km²</div>'+grades.map((g,i)=>{
@@ -592,7 +597,7 @@
   function setActivePins(){
     GYMS.forEach(g=>{
       markers[g.id].setIcon(icon(g, g.id===selectedId));
-      markers[g.id].setOpacity(allOff ? 0 : (matches(g)?1:0.5));
+      markers[g.id].setOpacity(allOff ? 0 : (matches(g)?1:0.3));
     });
     applyAllPinA11y();
   }
@@ -834,7 +839,7 @@
     wireScrollers(compareRow);
     const set = new Set();
     compareList.forEach(b=>brandMap[b].forEach(x=>set.add(x.id)));
-    GYMS.forEach(g=>{ markers[g.id].setIcon(icon(g, set.has(g.id))); markers[g.id].setOpacity(set.size? (set.has(g.id)?1:0.5) : 1); });
+    GYMS.forEach(g=>{ markers[g.id].setIcon(icon(g, set.has(g.id))); markers[g.id].setOpacity(set.size? (set.has(g.id)?1:0.3) : 1); });
     applyAllPinA11y();
   }
   function enterCompare(brand, locId){
