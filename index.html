@@ -56,7 +56,7 @@
   .pin-tip .t-name{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px;margin-bottom:1px}
   .pin-tip .t-dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--ink);flex:none}
   .pin-tip .t-row{color:var(--muted);font-size:12px;margin-top:1px}
-  .pin-tip .t-price{color:#13934f;font-weight:700;margin-top:3px}
+  .pin-tip .t-price{color:#13934f;font-weight:700;margin-top:3px;white-space:nowrap}
   .pin-tip .t-price small{color:var(--muted);font-weight:500}
   /* density polygons: remove the default SVG focus-box ("the square") */
   .leaflet-container path.leaflet-interactive:focus,
@@ -126,7 +126,7 @@
   .bcmp{justify-self:end;border:2.5px solid var(--ink);background:var(--accent-2);color:#fff;
     width:34px;height:30px;border-radius:9px;cursor:pointer;font-size:15px;line-height:1;font-weight:700;box-shadow:2px 2px 0 var(--ink);font-family:inherit;display:grid;place-items:center}
   .bcmp:active{transform:translate(2px,2px);box-shadow:none}
-  .tabs{display:flex;flex-wrap:nowrap;justify-content:safe center;gap:7px;padding:11px 14px 14px;border-bottom:3px solid var(--ink);background:#fff7ec;overflow-x:auto;scrollbar-width:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  .tabs{display:flex;flex-wrap:nowrap;justify-content:safe center;align-items:center;gap:7px;padding:10px 14px;border-bottom:3px solid var(--ink);background:#fff7ec;overflow-x:auto;scrollbar-width:none;cursor:grab;user-select:none;-webkit-user-select:none}
   .tabs::-webkit-scrollbar{display:none}
   .tabs.dragging{cursor:grabbing}
   .tab{flex:0 0 auto;white-space:nowrap;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0 15px;height:36px;
@@ -356,7 +356,19 @@
   const streetOf  = a => { const m=String(a||'').match(/^[^\d,]+/); return m?m[0].trim():''; };
   const pillLabel = g => { const ar=shortArea(g.town), st=streetOf(g.address); return st ? (ar ? ar+' · '+st : st) : ar; };
   // hover tooltip: price only
-  function tipHtml(g){ return `<div class="t-price">${esc(g.priceMonthly||'—')}</div>`; }
+  function tipHtml(g){
+    const vals=[];
+    const scan = arr => (arr||[]).forEach(s=>{ const v=String(s.value||''), lab=String(s.label||'');
+      if(/family|kids|child|household/i.test(lab)) return;               // skip Kids/Family memberships
+      if(/\+|pr\.\s*person|−|%|\/cl|per class|see|—/i.test(v)) return;   // skip admin, add-ons, per-person, %-discounts, per-class
+      (v.match(/\d[\d.]*/g)||[]).forEach(n=>{ const num=parseInt(n.replace(/\./g,''),10); if(num>=50 && num<=2000) vals.push(num); });
+    });
+    scan(g.subscriptions); scan(g.subsU30);
+    let p;
+    if(vals.length){ const lo=Math.min(...vals), hi=Math.max(...vals); p = lo===hi ? (lo+' kr/mo') : (lo+'–'+hi+' kr/mo'); }
+    else p = g.priceMonthly||'—';
+    return `<div class="t-price">${esc(p)}</div>`;
+  }
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   // ---- Branding from CONFIG ----
@@ -794,11 +806,12 @@
       const bodies = groups.map((gr,i)=>`<div class="pgroup" data-pg="${gr.key}"${i===0?'':' style="display:none"'}>${rows(gr.arr)}</div>`).join('');
       return `<div class="pricewrap">${tabs}${bodies}</div>`;
     };
-    if(g.subsU30 && g.subsU30.length){   // age-based pricing → 30+ / Under 30 toggle, each with its own Subscriptions + Prepaid
+    const head = arr => (arr && arr.length) ? `<div class="pricebig">From ${esc(arr[0].value)}</div>` : '';
+    if(g.subsU30 && g.subsU30.length){   // age-based pricing → 30+ / Under 30 toggle; each pane shows its own headline price + Subscriptions/Prepaid
       return `<div class="agewrap">`+
         `<div class="agetabs"><button class="agetab active" data-age="o30">30+</button><button class="agetab" data-age="u30">Under 30</button></div>`+
-        `<div class="agepane" data-age="o30">${mk(g.subscriptions)}</div>`+
-        `<div class="agepane" data-age="u30" style="display:none">${mk(g.subsU30)}</div>`+
+        `<div class="agepane" data-age="o30">${head(g.subscriptions)}${mk(g.subscriptions)}</div>`+
+        `<div class="agepane" data-age="u30" style="display:none">${head(g.subsU30)}${mk(g.subsU30)}</div>`+
       `</div>`;
     }
     return mk(g.subscriptions);
@@ -815,7 +828,8 @@
   }
   function detailHtml(g){
     let html = '';
-    html += `<div class="sec"><div class="pricebig">${esc(g.priceMonthly||'—')}</div>${priceGroups(g)}</div>`;
+    const headline = (g.subsU30 && g.subsU30.length) ? '' : `<div class="pricebig">${esc(g.priceMonthly||'—')}</div>`;
+    html += `<div class="sec">${headline}${priceGroups(g)}</div>`;
     html += `<div class="sec hours"><h4>${g.classOnly?'Class times':'Opening hours'}</h4>${hoursRows(g)}`;
     if(g.hours && g.hours.note && DAYS.some(d=>g.hours[d])) html += `<div class="note">${esc(g.hours.note)}</div>`;
     html += `</div>`;
